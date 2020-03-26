@@ -7,20 +7,31 @@ document.getElementById("app").innerHTML = `
   <a href="https://parceljs.org" target="_blank" rel="noopener noreferrer">here</a>.
 </div>
 `;
+// https://github.com/webrtc/samples/blob/gh-pages/src/content/getusermedia/gum/js/main.js
 
 const leftVideo = document.getElementById("leftVideo");
 const rightVideo = document.getElementById("rightVideo");
 
+const constraints = window.constraints = {
+  audio: false,
+  video: true
+};
+
+
 leftVideo.addEventListener("canplay", () => {
-  let stream;
   const fps = 0;
-  if (leftVideo.captureStream) {
-    stream = leftVideo.captureStream(fps);
-  } else if (leftVideo.mozCaptureStream) {
-    stream = leftVideo.mozCaptureStream(fps);
-  } else {
-    console.error("Stream capture is not supported");
-    stream = null;
-  }
-  rightVideo.srcObject = stream;
+  //rightVideo.srcObject = stream;
 });
+// https://github.com/babel/babel/issues/9849
+async function getVideoStream() {
+  const stream = await navigator.mediaDevices.getUserMedia(constraints);
+  const video = document.querySelector('#camera');
+  console.log(stream)
+  const videoTracks = stream.getVideoTracks();
+//  console.log('Got stream with constraints:', constraints);
+//  console.log(`Using video device: ${videoTracks[0].label}`);
+  window.stream = stream; // make variable available to browser console
+  video.srcObject = stream;
+}
+
+getVideoStream()
