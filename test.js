@@ -2,13 +2,12 @@
 const THREE = require('./three.module')
 
 
-import Stats from "./stats.module.js";
 
 import { FirstPersonControls } from "./FirstPersonControls.js";
 import { ImprovedNoise } from "./ImprovedNoise.js";
 console.log(FirstPersonControls);
 
-var container, stats;
+var container;
 
 var camera, controls, scene, renderer;
 
@@ -77,8 +76,7 @@ function init() {
   controls.movementSpeed = 1000;
   controls.lookSpeed = 0.1;
 
-  stats = new Stats();
-  container.appendChild(stats.dom);
+
 
   //
 
@@ -182,7 +180,6 @@ function animate() {
   requestAnimationFrame(animate);
 
   render();
-  stats.update();
 }
 
 function render() {
