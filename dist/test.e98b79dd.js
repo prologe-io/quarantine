@@ -35723,11 +35723,11 @@ var _FirstPersonControls = require("./FirstPersonControls.js");
 var _ImprovedNoise = require("./ImprovedNoise.js");
 
 //import * as THREE from "./three.module.js";
-var THREE = require('./three.module');
+var THREE = require("./three.module");
 
 console.log(_FirstPersonControls.FirstPersonControls);
 var container;
-var camera, controls, scene, renderer;
+var camera, controls, scene, renderer, video;
 var mesh, texture;
 var worldWidth = 256,
     worldDepth = 256,
@@ -35742,10 +35742,22 @@ function init() {
   camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 1, 20000);
   scene = new THREE.Scene();
   scene.background = new THREE.Color(0xbfd1e5);
+  video = document.getElementById("video");
+  var videoTexture = new THREE.VideoTexture(video);
   var data = generateHeight(worldWidth, worldDepth);
   camera.position.y = data[worldHalfWidth + worldHalfDepth * worldWidth] * 10 + 500;
   var geometry = new THREE.PlaneBufferGeometry(7500, 7500, worldWidth - 1, worldDepth - 1);
   geometry.rotateX(-Math.PI / 2);
+  var videoMaterial = new THREE.MeshBasicMaterial({
+    map: videoTexture
+  });
+  var mesh2 = new THREE.Mesh(geometry, videoMaterial);
+  mesh2.position.z = 200;
+  mesh2.position.x = 140;
+  mesh2.position.y = 400;
+  mesh2.lookAt(camera.position);
+  mesh2.scale.set(0.04, 0.04, 0.04);
+  scene.add(mesh2);
   var vertices = geometry.attributes.position.array;
 
   for (var i = 0, j = 0, l = vertices.length; i < l; i++, j += 3) {
@@ -35768,6 +35780,25 @@ function init() {
   controls.lookSpeed = 0.1; //
 
   window.addEventListener("resize", onWindowResize, false);
+
+  if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+    var constraints = {
+      video: {
+        width: 1280,
+        height: 720,
+        facingMode: "user"
+      }
+    };
+    navigator.mediaDevices.getUserMedia(constraints).then(function (stream) {
+      // apply the stream to the video element used in the texture
+      video.srcObject = stream;
+      video.play();
+    }).catch(function (error) {
+      console.error("Unable to access the camera/webcam.", error);
+    });
+  } else {
+    console.error("MediaDevices interface not available.");
+  }
 }
 
 function onWindowResize() {
@@ -35854,6 +35885,47 @@ function render() {
   controls.update(clock.getDelta());
   renderer.render(scene, camera);
 }
+
+function main() {
+  // setup canvas
+  var canvas = document.querySelector("#c");
+  var renderer = new THREE.WebGLRenderer({
+    canvas: canvas
+  }); // setup camera
+
+  var fov = 75;
+  var aspect = 2;
+  var near = 0.1;
+  var far = 5;
+  var camera = new THREE.PerspectiveCamera(fov, aspect, near, far);
+  camera.position.z = 2; // setup scene
+
+  var scene = new THREE.Scene(); // setup geometry for mesh
+
+  var boxWidth = 1;
+  var boxHeight = 1;
+  var boxDepth = 1;
+  var geometry = new THREE.BoxGeometry(boxWidth, boxHeight, boxDepth); // setup material for mesh
+
+  var material = new THREE.MeshBasicMaterial({
+    color: "green"
+  }); // compose mesh from geomtry and material','""','
+
+  var cube = new THREE.Mesh(geometry, material);
+  scene.add(cube);
+  renderer.render(scene, camera);
+
+  function render(time) {
+    time *= 0.002;
+    cube.rotation.x = time;
+    renderer.render(scene, camera);
+    requestAnimationFrame(render);
+  }
+
+  requestAnimationFrame(render);
+}
+
+main();
 },{"./three.module":"three.module.js","./FirstPersonControls.js":"FirstPersonControls.js","./ImprovedNoise.js":"ImprovedNoise.js"}],"node_modules/parcel-bundler/src/builtins/hmr-runtime.js":[function(require,module,exports) {
 var global = arguments[3];
 var OVERLAY_ID = '__parcel__error__overlay__';
@@ -35882,7 +35954,7 @@ var parent = module.bundle.parent;
 if ((!parent || !parent.isParcelRequire) && typeof WebSocket !== 'undefined') {
   var hostname = "" || location.hostname;
   var protocol = location.protocol === 'https:' ? 'wss' : 'ws';
-  var ws = new WebSocket(protocol + '://' + hostname + ':' + "59706" + '/');
+  var ws = new WebSocket(protocol + '://' + hostname + ':' + "49793" + '/');
 
   ws.onmessage = function (event) {
     checkedAssets = {};

@@ -1,26 +1,31 @@
 <!DOCTYPE html>
 <html lang="en">
-	<head>
-		<title>three.js webgl - geometry - terrain</title>
-		<meta charset="utf-8">
-		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
-		<style>
-			body {
-				background-color: #bfd1e5;
-				color: #61443e;
-			}
-			a {
-				color: #a06851;
-			}
-		</style>
-	</head>
-	<body>
+  <head>
+    <title>three.js webgl - geometry - terrain</title>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0"
+    />
+    <style>
+      body {
+        background-color: #bfd1e5;
+        color: #61443e;
+      }
+      a {
+        color: #a06851;
+      }
+    </style>
+  </head>
+  <body>
+	<video id="video" autoplay style="display: none;"></video>
+	<canvas id="c"></canvas>
+    <div id="container"></div>
+    <div id="info">
+      <a href="https://threejs.org" target="_blank" rel="noopener">three.js</a>
+      - webgl terrain demo<br />(left click: forward, right click: backward)
+    </div>
 
-		<div id="container"></div>
-		<div id="info"><a href="https://threejs.org" target="_blank" rel="noopener">three.js</a> - webgl terrain demo<br />(left click: forward, right click: backward)</div>
-
-		<script src="./test.js">
-		</script>
-
-	</body>
+    <script src="./test.js"></script>
+  </body>
 </html>

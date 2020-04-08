@@ -1,7 +1,5 @@
 //import * as THREE from "./three.module.js";
-const THREE = require('./three.module')
-
-
+const THREE = require("./three.module");
 
 import { FirstPersonControls } from "./FirstPersonControls.js";
 import { ImprovedNoise } from "./ImprovedNoise.js";
@@ -9,7 +7,7 @@ console.log(FirstPersonControls);
 
 var container;
 
-var camera, controls, scene, renderer;
+var camera, controls, scene, renderer, video;
 
 var mesh, texture;
 
@@ -34,7 +32,11 @@ function init() {
   );
 
   scene = new THREE.Scene();
+
   scene.background = new THREE.Color(0xbfd1e5);
+
+  video = document.getElementById("video");
+  var videoTexture = new THREE.VideoTexture(video);
 
   var data = generateHeight(worldWidth, worldDepth);
 
@@ -48,6 +50,15 @@ function init() {
     worldDepth - 1
   );
   geometry.rotateX(-Math.PI / 2);
+
+  var videoMaterial = new THREE.MeshBasicMaterial({ map: videoTexture });
+  var mesh2 = new THREE.Mesh(geometry, videoMaterial);
+  mesh2.position.z = 200;
+  mesh2.position.x = 140;
+  mesh2.position.y = 400;
+  mesh2.lookAt(camera.position);
+  mesh2.scale.set(0.04, 0.04, 0.04);
+  scene.add(mesh2);
 
   var vertices = geometry.attributes.position.array;
 
@@ -76,11 +87,28 @@ function init() {
   controls.movementSpeed = 1000;
   controls.lookSpeed = 0.1;
 
-
-
   //
 
   window.addEventListener("resize", onWindowResize, false);
+  if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+    var constraints = {
+      video: { width: 1280, height: 720, facingMode: "user" }
+    };
+
+    navigator.mediaDevices
+      .getUserMedia(constraints)
+      .then(function (stream) {
+        // apply the stream to the video element used in the texture
+
+        video.srcObject = stream;
+        video.play();
+      })
+      .catch(function (error) {
+        console.error("Unable to access the camera/webcam.", error);
+      });
+  } else {
+    console.error("MediaDevices interface not available.");
+  }
 }
 
 function onWindowResize() {
@@ -186,3 +214,49 @@ function render() {
   controls.update(clock.getDelta());
   renderer.render(scene, camera);
 }
+
+function main() {
+  // setup canvas
+  const canvas = document.querySelector("#c");
+
+  const renderer = new THREE.WebGLRenderer({ canvas });
+
+  // setup camera
+
+  const fov = 75;
+  const aspect = 2;
+  const near = 0.1;
+  const far = 5;
+  const camera = new THREE.PerspectiveCamera(fov, aspect, near, far);
+  camera.position.z = 2;
+
+  // setup scene
+
+  const scene = new THREE.Scene();
+
+  // setup geometry for mesh
+
+  const boxWidth = 1;
+  const boxHeight = 1;
+  const boxDepth = 1;
+  const geometry = new THREE.BoxGeometry(boxWidth, boxHeight, boxDepth);
+
+  // setup material for mesh
+
+  const material = new THREE.MeshBasicMaterial({ color: "green" });
+
+  // compose mesh from geomtry and material','""','
+  const cube = new THREE.Mesh(geometry, material);
+
+  scene.add(cube);
+
+  renderer.render(scene, camera);
+  function render(time) {
+    time *= 0.002;
+    cube.rotation.x = time;
+    renderer.render(scene, camera);
+    requestAnimationFrame(render);
+  }
+  requestAnimationFrame(render);
+}
+main();
