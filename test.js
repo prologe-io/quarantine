@@ -264,6 +264,7 @@ function init() {
     // position webcam infron of camera
     plane.position.y = 50;
     plane.position.z = -150;
+    plane.material.side = THREE.DoubleSide
     scene.add(plane);
   }
   initPlane();
