@@ -35328,605 +35328,422 @@ if (typeof __THREE_DEVTOOLS__ !== 'undefined') {
   /* eslint-enable no-undef */
 
 }
-},{"@babel/runtime/helpers/typeof":"node_modules/@babel/runtime/helpers/typeof.js","@babel/runtime/helpers/defineProperty":"node_modules/@babel/runtime/helpers/defineProperty.js","@babel/runtime/helpers/assertThisInitialized":"node_modules/@babel/runtime/helpers/assertThisInitialized.js","@babel/runtime/helpers/classCallCheck":"node_modules/@babel/runtime/helpers/classCallCheck.js","@babel/runtime/helpers/possibleConstructorReturn":"node_modules/@babel/runtime/helpers/possibleConstructorReturn.js","@babel/runtime/helpers/getPrototypeOf":"node_modules/@babel/runtime/helpers/getPrototypeOf.js","@babel/runtime/helpers/inherits":"node_modules/@babel/runtime/helpers/inherits.js"}],"FirstPersonControls.js":[function(require,module,exports) {
+},{"@babel/runtime/helpers/typeof":"node_modules/@babel/runtime/helpers/typeof.js","@babel/runtime/helpers/defineProperty":"node_modules/@babel/runtime/helpers/defineProperty.js","@babel/runtime/helpers/assertThisInitialized":"node_modules/@babel/runtime/helpers/assertThisInitialized.js","@babel/runtime/helpers/classCallCheck":"node_modules/@babel/runtime/helpers/classCallCheck.js","@babel/runtime/helpers/possibleConstructorReturn":"node_modules/@babel/runtime/helpers/possibleConstructorReturn.js","@babel/runtime/helpers/getPrototypeOf":"node_modules/@babel/runtime/helpers/getPrototypeOf.js","@babel/runtime/helpers/inherits":"node_modules/@babel/runtime/helpers/inherits.js"}],"PointerLockControls.js":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-exports.FirstPersonControls = void 0;
+exports.PointerLockControls = void 0;
 
 var _threeModule = require("./three.module.js");
 
 /**
  * @author mrdoob / http://mrdoob.com/
- * @author alteredq / http://alteredqualia.com/
- * @author paulirish / http://paulirish.com/
+ * @author Mugen87 / https://github.com/Mugen87
  */
-var FirstPersonControls = function FirstPersonControls(object, domElement) {
+var PointerLockControls = function PointerLockControls(camera, domElement) {
   if (domElement === undefined) {
-    console.warn('THREE.FirstPersonControls: The second parameter "domElement" is now mandatory.');
-    domElement = document;
+    console.warn('THREE.PointerLockControls: The second parameter "domElement" is now mandatory.');
+    domElement = document.body;
   }
 
-  this.object = object;
-  this.domElement = domElement; // API
+  this.domElement = domElement;
+  this.isLocked = false; //
+  // internals
+  //
 
-  this.enabled = true;
-  this.movementSpeed = 1.0;
-  this.lookSpeed = 0.005;
-  this.lookVertical = true;
-  this.autoForward = false;
-  this.activeLook = true;
-  this.heightSpeed = false;
-  this.heightCoef = 1.0;
-  this.heightMin = 0.0;
-  this.heightMax = 1.0;
-  this.constrainVertical = false;
-  this.verticalMin = 0;
-  this.verticalMax = Math.PI;
-  this.mouseDragOn = false; // internals
+  var scope = this;
+  var changeEvent = {
+    type: 'change'
+  };
+  var lockEvent = {
+    type: 'lock'
+  };
+  var unlockEvent = {
+    type: 'unlock'
+  };
+  var euler = new _threeModule.Euler(0, 0, 0, 'YXZ');
+  var PI_2 = Math.PI / 2;
+  var vec = new _threeModule.Vector3();
 
-  this.autoSpeedFactor = 0.0;
-  this.mouseX = 0;
-  this.mouseY = 0;
-  this.moveForward = false;
-  this.moveBackward = false;
-  this.moveLeft = false;
-  this.moveRight = false;
-  this.viewHalfX = 0;
-  this.viewHalfY = 0; // private variables
+  function onMouseMove(event) {
+    if (scope.isLocked === false) return;
+    var movementX = event.movementX || event.mozMovementX || event.webkitMovementX || 0;
+    var movementY = event.movementY || event.mozMovementY || event.webkitMovementY || 0;
+    euler.setFromQuaternion(camera.quaternion);
+    euler.y -= movementX * 0.002;
+    euler.x -= movementY * 0.002;
+    euler.x = Math.max(-PI_2, Math.min(PI_2, euler.x));
+    camera.quaternion.setFromEuler(euler);
+    scope.dispatchEvent(changeEvent);
+  }
 
-  var lat = 0;
-  var lon = 0;
-  var lookDirection = new _threeModule.Vector3();
-  var spherical = new _threeModule.Spherical();
-  var target = new _threeModule.Vector3(); //
-
-  if (this.domElement !== document) {
-    this.domElement.setAttribute("tabindex", -1);
-  } //
-
-
-  this.handleResize = function () {
-    if (this.domElement === document) {
-      this.viewHalfX = window.innerWidth / 2;
-      this.viewHalfY = window.innerHeight / 2;
+  function onPointerlockChange() {
+    if (document.pointerLockElement === scope.domElement) {
+      scope.dispatchEvent(lockEvent);
+      scope.isLocked = true;
     } else {
-      this.viewHalfX = this.domElement.offsetWidth / 2;
-      this.viewHalfY = this.domElement.offsetHeight / 2;
+      scope.dispatchEvent(unlockEvent);
+      scope.isLocked = false;
     }
+  }
+
+  function onPointerlockError() {
+    console.error('THREE.PointerLockControls: Unable to use Pointer Lock API');
+  }
+
+  this.connect = function () {
+    document.addEventListener('mousemove', onMouseMove, false);
+    document.addEventListener('pointerlockchange', onPointerlockChange, false);
+    document.addEventListener('pointerlockerror', onPointerlockError, false);
   };
 
-  this.onMouseDown = function (event) {
-    if (this.domElement !== document) {
-      this.domElement.focus();
-    }
-
-    event.preventDefault();
-    event.stopPropagation();
-
-    if (this.activeLook) {
-      switch (event.button) {
-        case 0:
-          this.moveForward = true;
-          break;
-
-        case 2:
-          this.moveBackward = true;
-          break;
-      }
-    }
-
-    this.mouseDragOn = true;
+  this.disconnect = function () {
+    document.removeEventListener('mousemove', onMouseMove, false);
+    document.removeEventListener('pointerlockchange', onPointerlockChange, false);
+    document.removeEventListener('pointerlockerror', onPointerlockError, false);
   };
 
-  this.onMouseUp = function (event) {
-    event.preventDefault();
-    event.stopPropagation();
-
-    if (this.activeLook) {
-      switch (event.button) {
-        case 0:
-          this.moveForward = false;
-          break;
-
-        case 2:
-          this.moveBackward = false;
-          break;
-      }
-    }
-
-    this.mouseDragOn = false;
+  this.dispose = function () {
+    this.disconnect();
   };
 
-  this.onMouseMove = function (event) {
-    if (this.domElement === document) {
-      this.mouseX = event.pageX - this.viewHalfX;
-      this.mouseY = event.pageY - this.viewHalfY;
-    } else {
-      this.mouseX = event.pageX - this.domElement.offsetLeft - this.viewHalfX;
-      this.mouseY = event.pageY - this.domElement.offsetTop - this.viewHalfY;
-    }
+  this.getObject = function () {
+    // retaining this method for backward compatibility
+    return camera;
   };
 
-  this.onKeyDown = function (event) {
-    //event.preventDefault();
-    switch (event.keyCode) {
-      case 38:
-      /*up*/
-
-      case 87:
-        /*W*/
-        this.moveForward = true;
-        break;
-
-      case 37:
-      /*left*/
-
-      case 65:
-        /*A*/
-        this.moveLeft = true;
-        break;
-
-      case 40:
-      /*down*/
-
-      case 83:
-        /*S*/
-        this.moveBackward = true;
-        break;
-
-      case 39:
-      /*right*/
-
-      case 68:
-        /*D*/
-        this.moveRight = true;
-        break;
-
-      case 82:
-        /*R*/
-        this.moveUp = true;
-        break;
-
-      case 70:
-        /*F*/
-        this.moveDown = true;
-        break;
-    }
-  };
-
-  this.onKeyUp = function (event) {
-    switch (event.keyCode) {
-      case 38:
-      /*up*/
-
-      case 87:
-        /*W*/
-        this.moveForward = false;
-        break;
-
-      case 37:
-      /*left*/
-
-      case 65:
-        /*A*/
-        this.moveLeft = false;
-        break;
-
-      case 40:
-      /*down*/
-
-      case 83:
-        /*S*/
-        this.moveBackward = false;
-        break;
-
-      case 39:
-      /*right*/
-
-      case 68:
-        /*D*/
-        this.moveRight = false;
-        break;
-
-      case 82:
-        /*R*/
-        this.moveUp = false;
-        break;
-
-      case 70:
-        /*F*/
-        this.moveDown = false;
-        break;
-    }
-  };
-
-  this.lookAt = function (x, y, z) {
-    if (x.isVector3) {
-      target.copy(x);
-    } else {
-      target.set(x, y, z);
-    }
-
-    this.object.lookAt(target);
-    setOrientation(this);
-    return this;
-  };
-
-  this.update = function () {
-    var targetPosition = new _threeModule.Vector3();
-    return function update(delta) {
-      if (this.enabled === false) return;
-
-      if (this.heightSpeed) {
-        var y = _threeModule.MathUtils.clamp(this.object.position.y, this.heightMin, this.heightMax);
-
-        var heightDelta = y - this.heightMin;
-        this.autoSpeedFactor = delta * (heightDelta * this.heightCoef);
-      } else {
-        this.autoSpeedFactor = 0.0;
-      }
-
-      var actualMoveSpeed = delta * this.movementSpeed;
-      if (this.moveForward || this.autoForward && !this.moveBackward) this.object.translateZ(-(actualMoveSpeed + this.autoSpeedFactor));
-      if (this.moveBackward) this.object.translateZ(actualMoveSpeed);
-      if (this.moveLeft) this.object.translateX(-actualMoveSpeed);
-      if (this.moveRight) this.object.translateX(actualMoveSpeed);
-      if (this.moveUp) this.object.translateY(actualMoveSpeed);
-      if (this.moveDown) this.object.translateY(-actualMoveSpeed);
-      var actualLookSpeed = delta * this.lookSpeed;
-
-      if (!this.activeLook) {
-        actualLookSpeed = 0;
-      }
-
-      var verticalLookRatio = 1;
-
-      if (this.constrainVertical) {
-        verticalLookRatio = Math.PI / (this.verticalMax - this.verticalMin);
-      }
-
-      lon -= this.mouseX * actualLookSpeed;
-      if (this.lookVertical) lat -= this.mouseY * actualLookSpeed * verticalLookRatio;
-      lat = Math.max(-85, Math.min(85, lat));
-
-      var phi = _threeModule.MathUtils.degToRad(90 - lat);
-
-      var theta = _threeModule.MathUtils.degToRad(lon);
-
-      if (this.constrainVertical) {
-        phi = _threeModule.MathUtils.mapLinear(phi, 0, Math.PI, this.verticalMin, this.verticalMax);
-      }
-
-      var position = this.object.position;
-      targetPosition.setFromSphericalCoords(1, phi, theta).add(position);
-      this.object.lookAt(targetPosition);
+  this.getDirection = function () {
+    var direction = new _threeModule.Vector3(0, 0, -1);
+    return function (v) {
+      return v.copy(direction).applyQuaternion(camera.quaternion);
     };
   }();
 
-  function contextmenu(event) {
-    event.preventDefault();
-  }
-
-  this.dispose = function () {
-    this.domElement.removeEventListener("contextmenu", contextmenu, false);
-    this.domElement.removeEventListener("mousedown", _onMouseDown, false);
-    this.domElement.removeEventListener("mousemove", _onMouseMove, false);
-    this.domElement.removeEventListener("mouseup", _onMouseUp, false);
-    window.removeEventListener("keydown", _onKeyDown, false);
-    window.removeEventListener("keyup", _onKeyUp, false);
+  this.moveForward = function (distance) {
+    // move forward parallel to the xz-plane
+    // assumes camera.up is y-up
+    vec.setFromMatrixColumn(camera.matrix, 0);
+    vec.crossVectors(camera.up, vec);
+    camera.position.addScaledVector(vec, distance);
   };
 
-  var _onMouseMove = bind(this, this.onMouseMove);
-
-  var _onMouseDown = bind(this, this.onMouseDown);
-
-  var _onMouseUp = bind(this, this.onMouseUp);
-
-  var _onKeyDown = bind(this, this.onKeyDown);
-
-  var _onKeyUp = bind(this, this.onKeyUp);
-
-  this.domElement.addEventListener("contextmenu", contextmenu, false);
-  this.domElement.addEventListener("mousemove", _onMouseMove, false);
-  this.domElement.addEventListener("mousedown", _onMouseDown, false);
-  this.domElement.addEventListener("mouseup", _onMouseUp, false);
-  window.addEventListener("keydown", _onKeyDown, false);
-  window.addEventListener("keyup", _onKeyUp, false);
-
-  function bind(scope, fn) {
-    return function () {
-      fn.apply(scope, arguments);
-    };
-  }
-
-  function setOrientation(controls) {
-    var quaternion = controls.object.quaternion;
-    lookDirection.set(0, 0, -1).applyQuaternion(quaternion);
-    spherical.setFromVector3(lookDirection);
-    lat = 90 - _threeModule.MathUtils.radToDeg(spherical.phi);
-    lon = _threeModule.MathUtils.radToDeg(spherical.theta);
-  }
-
-  this.handleResize();
-  setOrientation(this);
-};
-
-exports.FirstPersonControls = FirstPersonControls;
-},{"./three.module.js":"three.module.js"}],"ImprovedNoise.js":[function(require,module,exports) {
-"use strict";
-
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-exports.ImprovedNoise = void 0;
-
-// http://mrl.nyu.edu/~perlin/noise/
-var ImprovedNoise = function ImprovedNoise() {
-  var p = [151, 160, 137, 91, 90, 15, 131, 13, 201, 95, 96, 53, 194, 233, 7, 225, 140, 36, 103, 30, 69, 142, 8, 99, 37, 240, 21, 10, 23, 190, 6, 148, 247, 120, 234, 75, 0, 26, 197, 62, 94, 252, 219, 203, 117, 35, 11, 32, 57, 177, 33, 88, 237, 149, 56, 87, 174, 20, 125, 136, 171, 168, 68, 175, 74, 165, 71, 134, 139, 48, 27, 166, 77, 146, 158, 231, 83, 111, 229, 122, 60, 211, 133, 230, 220, 105, 92, 41, 55, 46, 245, 40, 244, 102, 143, 54, 65, 25, 63, 161, 1, 216, 80, 73, 209, 76, 132, 187, 208, 89, 18, 169, 200, 196, 135, 130, 116, 188, 159, 86, 164, 100, 109, 198, 173, 186, 3, 64, 52, 217, 226, 250, 124, 123, 5, 202, 38, 147, 118, 126, 255, 82, 85, 212, 207, 206, 59, 227, 47, 16, 58, 17, 182, 189, 28, 42, 223, 183, 170, 213, 119, 248, 152, 2, 44, 154, 163, 70, 221, 153, 101, 155, 167, 43, 172, 9, 129, 22, 39, 253, 19, 98, 108, 110, 79, 113, 224, 232, 178, 185, 112, 104, 218, 246, 97, 228, 251, 34, 242, 193, 238, 210, 144, 12, 191, 179, 162, 241, 81, 51, 145, 235, 249, 14, 239, 107, 49, 192, 214, 31, 181, 199, 106, 157, 184, 84, 204, 176, 115, 121, 50, 45, 127, 4, 150, 254, 138, 236, 205, 93, 222, 114, 67, 29, 24, 72, 243, 141, 128, 195, 78, 66, 215, 61, 156, 180];
-
-  for (var i = 0; i < 256; i++) {
-    p[256 + i] = p[i];
-  }
-
-  function fade(t) {
-    return t * t * t * (t * (t * 6 - 15) + 10);
-  }
-
-  function lerp(t, a, b) {
-    return a + t * (b - a);
-  }
-
-  function grad(hash, x, y, z) {
-    var h = hash & 15;
-    var u = h < 8 ? x : y,
-        v = h < 4 ? y : h == 12 || h == 14 ? x : z;
-    return ((h & 1) == 0 ? u : -u) + ((h & 2) == 0 ? v : -v);
-  }
-
-  return {
-    noise: function noise(x, y, z) {
-      var floorX = Math.floor(x),
-          floorY = Math.floor(y),
-          floorZ = Math.floor(z);
-      var X = floorX & 255,
-          Y = floorY & 255,
-          Z = floorZ & 255;
-      x -= floorX;
-      y -= floorY;
-      z -= floorZ;
-      var xMinus1 = x - 1,
-          yMinus1 = y - 1,
-          zMinus1 = z - 1;
-      var u = fade(x),
-          v = fade(y),
-          w = fade(z);
-      var A = p[X] + Y,
-          AA = p[A] + Z,
-          AB = p[A + 1] + Z,
-          B = p[X + 1] + Y,
-          BA = p[B] + Z,
-          BB = p[B + 1] + Z;
-      return lerp(w, lerp(v, lerp(u, grad(p[AA], x, y, z), grad(p[BA], xMinus1, y, z)), lerp(u, grad(p[AB], x, yMinus1, z), grad(p[BB], xMinus1, yMinus1, z))), lerp(v, lerp(u, grad(p[AA + 1], x, y, zMinus1), grad(p[BA + 1], xMinus1, y, z - 1)), lerp(u, grad(p[AB + 1], x, yMinus1, zMinus1), grad(p[BB + 1], xMinus1, yMinus1, zMinus1))));
-    }
+  this.moveRight = function (distance) {
+    vec.setFromMatrixColumn(camera.matrix, 0);
+    camera.position.addScaledVector(vec, distance);
   };
+
+  this.lock = function () {
+    this.domElement.requestPointerLock();
+  };
+
+  this.unlock = function () {
+    document.exitPointerLock();
+  };
+
+  this.connect();
 };
 
-exports.ImprovedNoise = ImprovedNoise;
-},{}],"test.js":[function(require,module,exports) {
+exports.PointerLockControls = PointerLockControls;
+PointerLockControls.prototype = Object.create(_threeModule.EventDispatcher.prototype);
+PointerLockControls.prototype.constructor = PointerLockControls;
+},{"./three.module.js":"three.module.js"}],"test.js":[function(require,module,exports) {
 "use strict";
 
-var _FirstPersonControls = require("./FirstPersonControls.js");
+var THREE = _interopRequireWildcard(require("./three.module.js"));
 
-var _ImprovedNoise = require("./ImprovedNoise.js");
+var _PointerLockControls = require("./PointerLockControls.js");
 
-//import * as THREE from "./three.module.js";
-var THREE = require("./three.module");
+function _getRequireWildcardCache() { if (typeof WeakMap !== "function") return null; var cache = new WeakMap(); _getRequireWildcardCache = function () { return cache; }; return cache; }
 
-console.log(_FirstPersonControls.FirstPersonControls);
-var container;
-var camera, controls, scene, renderer, video;
-var mesh, texture;
-var worldWidth = 256,
-    worldDepth = 256,
-    worldHalfWidth = worldWidth / 2,
-    worldHalfDepth = worldDepth / 2;
-var clock = new THREE.Clock();
+function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } if (obj === null || typeof obj !== "object" && typeof obj !== "function") { return { default: obj }; } var cache = _getRequireWildcardCache(); if (cache && cache.has(obj)) { return cache.get(obj); } var newObj = {}; var hasPropertyDescriptor = Object.defineProperty && Object.getOwnPropertyDescriptor; for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) { var desc = hasPropertyDescriptor ? Object.getOwnPropertyDescriptor(obj, key) : null; if (desc && (desc.get || desc.set)) { Object.defineProperty(newObj, key, desc); } else { newObj[key] = obj[key]; } } } newObj.default = obj; if (cache) { cache.set(obj, newObj); } return newObj; }
+
+var camera, scene, renderer, controls;
+var objects = [];
+var raycaster;
+var moveForward = false;
+var moveBackward = false;
+var moveLeft = false;
+var moveRight = false;
+var canJump = false;
+var prevTime = performance.now();
+var velocity = new THREE.Vector3();
+var direction = new THREE.Vector3();
+var vertex = new THREE.Vector3();
+var color = new THREE.Color();
 init();
 animate();
 
 function init() {
-  container = document.getElementById("container");
-  camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 1, 20000);
+  camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 1, 1000);
+  camera.position.y = 10;
   scene = new THREE.Scene();
-  scene.background = new THREE.Color(0xbfd1e5);
-  video = document.getElementById("video");
-  var videoTexture = new THREE.VideoTexture(video);
-  var data = generateHeight(worldWidth, worldDepth);
-  camera.position.y = data[worldHalfWidth + worldHalfDepth * worldWidth] * 10 + 500;
-  var geometry = new THREE.PlaneBufferGeometry(7500, 7500, worldWidth - 1, worldDepth - 1);
-  geometry.rotateX(-Math.PI / 2);
-  var videoMaterial = new THREE.MeshBasicMaterial({
-    map: videoTexture
-  });
-  var mesh2 = new THREE.Mesh(geometry, videoMaterial);
-  mesh2.position.z = 200;
-  mesh2.position.x = 140;
-  mesh2.position.y = 400;
-  mesh2.lookAt(camera.position);
-  mesh2.scale.set(0.04, 0.04, 0.04);
-  scene.add(mesh2);
-  var vertices = geometry.attributes.position.array;
+  scene.background = new THREE.Color(0xffffff);
+  scene.fog = new THREE.Fog(0xffffff, 0, 750);
+  var light = new THREE.HemisphereLight(0xeeeeff, 0x777788, 0.75);
+  light.position.set(0.5, 1, 0.75);
+  scene.add(light);
 
-  for (var i = 0, j = 0, l = vertices.length; i < l; i++, j += 3) {
-    vertices[j + 1] = data[i] * 10;
-  }
+  function initControls() {
+    controls = new _PointerLockControls.PointerLockControls(camera, document.body);
+    var blocker = document.getElementById("blocker");
+    var instructions = document.getElementById("instructions");
+    instructions.addEventListener("click", function () {
+      controls.lock();
+    }, false);
+    controls.addEventListener("lock", function () {
+      instructions.style.display = "none";
+      blocker.style.display = "none";
+    });
+    controls.addEventListener("unlock", function () {
+      blocker.style.display = "block";
+      instructions.style.display = "";
+    });
+    scene.add(controls.getObject());
 
-  texture = new THREE.CanvasTexture(generateTexture(data, worldWidth, worldDepth));
-  texture.wrapS = THREE.ClampToEdgeWrapping;
-  texture.wrapT = THREE.ClampToEdgeWrapping;
-  mesh = new THREE.Mesh(geometry, new THREE.MeshBasicMaterial({
-    map: texture
-  }));
-  scene.add(mesh);
-  renderer = new THREE.WebGLRenderer();
-  renderer.setPixelRatio(window.devicePixelRatio);
-  renderer.setSize(window.innerWidth, window.innerHeight);
-  container.appendChild(renderer.domElement);
-  controls = new _FirstPersonControls.FirstPersonControls(camera, renderer.domElement);
-  controls.movementSpeed = 1000;
-  controls.lookSpeed = 0.1; //
+    var onKeyDown = function onKeyDown(event) {
+      switch (event.keyCode) {
+        case 38: // up
 
-  window.addEventListener("resize", onWindowResize, false);
+        case 87:
+          // w
+          moveForward = true;
+          break;
 
-  if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-    var constraints = {
-      video: {
-        width: 1280,
-        height: 720,
-        facingMode: "user"
+        case 37: // left
+
+        case 65:
+          // a
+          moveLeft = true;
+          break;
+
+        case 40: // down
+
+        case 83:
+          // s
+          moveBackward = true;
+          break;
+
+        case 39: // right
+
+        case 68:
+          // d
+          moveRight = true;
+          break;
+
+        case 32:
+          // space
+          if (canJump === true) velocity.y += 350;
+          canJump = false;
+          break;
       }
     };
-    navigator.mediaDevices.getUserMedia(constraints).then(function (stream) {
-      // apply the stream to the video element used in the texture
-      video.srcObject = stream;
-      video.play();
-    }).catch(function (error) {
-      console.error("Unable to access the camera/webcam.", error);
+
+    var onKeyUp = function onKeyUp(event) {
+      switch (event.keyCode) {
+        case 38: // up
+
+        case 87:
+          // w
+          moveForward = false;
+          break;
+
+        case 37: // left
+
+        case 65:
+          // a
+          moveLeft = false;
+          break;
+
+        case 40: // down
+
+        case 83:
+          // s
+          moveBackward = false;
+          break;
+
+        case 39: // right
+
+        case 68:
+          // d
+          moveRight = false;
+          break;
+      }
+    };
+
+    document.addEventListener("keydown", onKeyDown, false);
+    document.addEventListener("keyup", onKeyUp, false);
+    raycaster = new THREE.Raycaster(new THREE.Vector3(), new THREE.Vector3(0, -1, 0), 0, 10);
+  } // this function is not self contained also check the animate function
+  // to understand how controls work
+
+
+  initControls(); // floor
+
+  function initFloor() {
+    var floorGeometry = new THREE.PlaneBufferGeometry(2000, 2000, 100, 100); // 1 sets the flor vertically 2 makes it horizontal
+
+    floorGeometry.rotateX(-Math.PI / 2); // vertex displacement
+
+    var position = floorGeometry.attributes.position;
+
+    for (var i = 0, l = position.count; i < l; i++) {
+      vertex.fromBufferAttribute(position, i);
+      vertex.x += Math.random() * 40 - 10;
+      vertex.y += Math.random() * 2;
+      vertex.z += Math.random() * 20 - 10;
+      position.setXYZ(i, vertex.x, vertex.y, vertex.z);
+    }
+
+    floorGeometry = floorGeometry.toNonIndexed(); // ensure each face has unique vertices
+
+    position = floorGeometry.attributes.position;
+    var colors = [];
+
+    for (var i = 0, l = position.count; i < l; i++) {
+      color.setHSL(Math.random() * 0.3 + 0.5, 0.75, Math.random() * 0.25 + 0.75);
+      colors.push(color.r, color.g, color.b);
+    }
+
+    floorGeometry.setAttribute("color", new THREE.Float32BufferAttribute(colors, 3));
+    var floorMaterial = new THREE.MeshBasicMaterial({
+      vertexColors: true
     });
-  } else {
-    console.error("MediaDevices interface not available.");
+    var floor = new THREE.Mesh(floorGeometry, floorMaterial);
+    scene.add(floor);
   }
+
+  initFloor(); // objects
+
+  function initObjects() {
+    var boxGeometry = new THREE.BoxBufferGeometry(20, 20, 20);
+    boxGeometry = boxGeometry.toNonIndexed(); // ensure each face has unique vertices
+
+    var position = boxGeometry.attributes.position;
+    var colors = [];
+
+    for (var i = 0, l = position.count; i < l; i++) {
+      color.setHSL(Math.random() * 0.3 + 0.5, 0.75, Math.random() * 0.25 + 0.75);
+      colors.push(color.r, color.g, color.b);
+    }
+
+    boxGeometry.setAttribute("color", new THREE.Float32BufferAttribute(colors, 3));
+
+    for (var i = 0; i < 500; i++) {
+      var boxMaterial = new THREE.MeshPhongMaterial({
+        specular: 0xffffff,
+        flatShading: true,
+        vertexColors: true
+      });
+      boxMaterial.color.setHSL(Math.random() * 0.2 + 0.5, 0.75, Math.random() * 0.25 + 0.75);
+      var box = new THREE.Mesh(boxGeometry, boxMaterial);
+      box.position.x = Math.floor(Math.random() * 20 - 10) * 20;
+      box.position.y = Math.floor(Math.random() * 20) * 20 + 10;
+      box.position.z = Math.floor(Math.random() * 20 - 10) * 20;
+      scene.add(box);
+      objects.push(box);
+    }
+  } // insert webcam on mesh
+
+
+  function initWebcamPermission() {
+    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+      var constraints = {
+        video: {
+          width: 1280,
+          height: 720,
+          facingMode: "user"
+        }
+      };
+      navigator.mediaDevices.getUserMedia(constraints).then(function (stream) {
+        // apply the stream to the video element used in the texture
+        video.srcObject = stream;
+        video.play();
+      }).catch(function (error) {
+        console.error("Unable to access the camera/webcam.", error);
+      });
+    } else {
+      console.error("MediaDevices interface not available.");
+    }
+  }
+
+  initWebcamPermission(); // this creates a plane with a webcam texture on it
+
+  function initPlane() {
+    var video = document.getElementById("video");
+    var texture = new THREE.VideoTexture(video);
+    var geometry = new THREE.PlaneGeometry(1280, 720, 32);
+    geometry.scale(0.1, 0.1, 0.1);
+    var material = new THREE.MeshBasicMaterial({
+      map: texture
+    });
+    var plane = new THREE.Mesh(geometry, material); // position webcam infron of camera
+
+    plane.position.y = 50;
+    plane.position.z = -150;
+    scene.add(plane);
+  }
+
+  initPlane();
+  renderer = new THREE.WebGLRenderer({
+    antialias: true
+  });
+  renderer.setPixelRatio(window.devicePixelRatio);
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  document.body.appendChild(renderer.domElement); //
+
+  window.addEventListener("resize", onWindowResize, false);
 }
 
 function onWindowResize() {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
-  controls.handleResize();
 }
-
-function generateHeight(width, height) {
-  var size = width * height,
-      data = new Uint8Array(size),
-      perlin = new _ImprovedNoise.ImprovedNoise(),
-      quality = 1,
-      z = Math.random() * 100;
-
-  for (var j = 0; j < 4; j++) {
-    for (var i = 0; i < size; i++) {
-      var x = i % width,
-          y = ~~(i / width);
-      data[i] += Math.abs(perlin.noise(x / quality, y / quality, z) * quality * 1.75);
-    }
-
-    quality *= 5;
-  }
-
-  return data;
-}
-
-function generateTexture(data, width, height) {
-  var canvas, canvasScaled, context, image, imageData, vector3, sun, shade;
-  vector3 = new THREE.Vector3(0, 0, 0);
-  sun = new THREE.Vector3(1, 1, 1);
-  sun.normalize();
-  canvas = document.createElement("canvas");
-  canvas.width = width;
-  canvas.height = height;
-  context = canvas.getContext("2d");
-  context.fillStyle = "#000";
-  context.fillRect(0, 0, width, height);
-  image = context.getImageData(0, 0, canvas.width, canvas.height);
-  imageData = image.data;
-
-  for (var i = 0, j = 0, l = imageData.length; i < l; i += 4, j++) {
-    vector3.x = data[j - 2] - data[j + 2];
-    vector3.y = 2;
-    vector3.z = data[j - width * 2] - data[j + width * 2];
-    vector3.normalize();
-    shade = vector3.dot(sun);
-    imageData[i] = (96 + shade * 128) * (0.5 + data[j] * 0.007);
-    imageData[i + 1] = (32 + shade * 96) * (0.5 + data[j] * 0.007);
-    imageData[i + 2] = shade * 96 * (0.5 + data[j] * 0.007);
-  }
-
-  context.putImageData(image, 0, 0); // Scaled 4x
-
-  canvasScaled = document.createElement("canvas");
-  canvasScaled.width = width * 4;
-  canvasScaled.height = height * 4;
-  context = canvasScaled.getContext("2d");
-  context.scale(4, 4);
-  context.drawImage(canvas, 0, 0);
-  image = context.getImageData(0, 0, canvasScaled.width, canvasScaled.height);
-  imageData = image.data;
-
-  for (var i = 0, l = imageData.length; i < l; i += 4) {
-    var v = ~~(Math.random() * 5);
-    imageData[i] += v;
-    imageData[i + 1] += v;
-    imageData[i + 2] += v;
-  }
-
-  context.putImageData(image, 0, 0);
-  return canvasScaled;
-} //
-
 
 function animate() {
   requestAnimationFrame(animate);
-  render();
-}
 
-function render() {
-  controls.update(clock.getDelta());
-  renderer.render(scene, camera);
-}
+  if (controls.isLocked === true) {
+    raycaster.ray.origin.copy(controls.getObject().position);
+    raycaster.ray.origin.y -= 10;
+    var intersections = raycaster.intersectObjects(objects);
+    var onObject = intersections.length > 0;
+    var time = performance.now();
+    var delta = (time - prevTime) / 1000;
+    velocity.x -= velocity.x * 10.0 * delta;
+    velocity.z -= velocity.z * 10.0 * delta;
+    velocity.y -= 9.8 * 100.0 * delta; // 100.0 = mass
 
-function main() {
-  // setup canvas
-  var canvas = document.querySelector("#c");
-  var renderer = new THREE.WebGLRenderer({
-    canvas: canvas
-  }); // setup camera
+    direction.z = Number(moveForward) - Number(moveBackward);
+    direction.x = Number(moveRight) - Number(moveLeft);
+    direction.normalize(); // this ensures consistent movements in all directions
 
-  var fov = 75;
-  var aspect = 2;
-  var near = 0.1;
-  var far = 5;
-  var camera = new THREE.PerspectiveCamera(fov, aspect, near, far);
-  camera.position.z = 2; // setup scene
+    if (moveForward || moveBackward) velocity.z -= direction.z * 400.0 * delta;
+    if (moveLeft || moveRight) velocity.x -= direction.x * 400.0 * delta;
 
-  var scene = new THREE.Scene(); // setup geometry for mesh
+    if (onObject === true) {
+      velocity.y = Math.max(0, velocity.y);
+      canJump = true;
+    }
 
-  var boxWidth = 1;
-  var boxHeight = 1;
-  var boxDepth = 1;
-  var geometry = new THREE.BoxGeometry(boxWidth, boxHeight, boxDepth); // setup material for mesh
+    controls.moveRight(-velocity.x * delta);
+    controls.moveForward(-velocity.z * delta);
+    controls.getObject().position.y += velocity.y * delta; // new behavior
 
-  var material = new THREE.MeshBasicMaterial({
-    color: "green"
-  }); // compose mesh from geomtry and material','""','
+    if (controls.getObject().position.y < 10) {
+      velocity.y = 0;
+      controls.getObject().position.y = 10;
+      canJump = true;
+    }
 
-  var cube = new THREE.Mesh(geometry, material);
-  scene.add(cube);
-  renderer.render(scene, camera);
-
-  function render(time) {
-    time *= 0.002;
-    cube.rotation.x = time;
-    renderer.render(scene, camera);
-    requestAnimationFrame(render);
+    prevTime = time;
   }
 
-  requestAnimationFrame(render);
+  renderer.render(scene, camera);
 }
-
-main();
-},{"./three.module":"three.module.js","./FirstPersonControls.js":"FirstPersonControls.js","./ImprovedNoise.js":"ImprovedNoise.js"}],"node_modules/parcel-bundler/src/builtins/hmr-runtime.js":[function(require,module,exports) {
+},{"./three.module.js":"three.module.js","./PointerLockControls.js":"PointerLockControls.js"}],"node_modules/parcel-bundler/src/builtins/hmr-runtime.js":[function(require,module,exports) {
 var global = arguments[3];
 var OVERLAY_ID = '__parcel__error__overlay__';
 var OldModule = module.bundle.Module;
@@ -35954,7 +35771,7 @@ var parent = module.bundle.parent;
 if ((!parent || !parent.isParcelRequire) && typeof WebSocket !== 'undefined') {
   var hostname = "" || location.hostname;
   var protocol = location.protocol === 'https:' ? 'wss' : 'ws';
-  var ws = new WebSocket(protocol + '://' + hostname + ':' + "49793" + '/');
+  var ws = new WebSocket(protocol + '://' + hostname + ':' + "57055" + '/');
 
   ws.onmessage = function (event) {
     checkedAssets = {};

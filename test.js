@@ -1,114 +1,281 @@
-//import * as THREE from "./three.module.js";
-const THREE = require("./three.module");
+import * as THREE from "./three.module.js";
 
-import { FirstPersonControls } from "./FirstPersonControls.js";
-import { ImprovedNoise } from "./ImprovedNoise.js";
-console.log(FirstPersonControls);
+import { PointerLockControls } from "./PointerLockControls.js";
 
-var container;
+var camera, scene, renderer, controls;
 
-var camera, controls, scene, renderer, video;
+var objects = [];
 
-var mesh, texture;
+var raycaster;
 
-var worldWidth = 256,
-  worldDepth = 256,
-  worldHalfWidth = worldWidth / 2,
-  worldHalfDepth = worldDepth / 2;
+var moveForward = false;
+var moveBackward = false;
+var moveLeft = false;
+var moveRight = false;
+var canJump = false;
 
-var clock = new THREE.Clock();
+var prevTime = performance.now();
+var velocity = new THREE.Vector3();
+var direction = new THREE.Vector3();
+var vertex = new THREE.Vector3();
+var color = new THREE.Color();
 
 init();
 animate();
 
 function init() {
-  container = document.getElementById("container");
-
   camera = new THREE.PerspectiveCamera(
-    60,
+    75,
     window.innerWidth / window.innerHeight,
     1,
-    20000
+    1000
   );
+  camera.position.y = 10;
 
   scene = new THREE.Scene();
+  scene.background = new THREE.Color(0xffffff);
+  scene.fog = new THREE.Fog(0xffffff, 0, 750);
 
-  scene.background = new THREE.Color(0xbfd1e5);
+  var light = new THREE.HemisphereLight(0xeeeeff, 0x777788, 0.75);
+  light.position.set(0.5, 1, 0.75);
+  scene.add(light);
 
-  video = document.getElementById("video");
-  var videoTexture = new THREE.VideoTexture(video);
+  function initControls() {
+    controls = new PointerLockControls(camera, document.body);
 
-  var data = generateHeight(worldWidth, worldDepth);
+    var blocker = document.getElementById("blocker");
+    var instructions = document.getElementById("instructions");
 
-  camera.position.y =
-    data[worldHalfWidth + worldHalfDepth * worldWidth] * 10 + 500;
+    instructions.addEventListener(
+      "click",
+      function () {
+        controls.lock();
+      },
+      false
+    );
 
-  var geometry = new THREE.PlaneBufferGeometry(
-    7500,
-    7500,
-    worldWidth - 1,
-    worldDepth - 1
-  );
-  geometry.rotateX(-Math.PI / 2);
+    controls.addEventListener("lock", function () {
+      instructions.style.display = "none";
+      blocker.style.display = "none";
+    });
 
-  var videoMaterial = new THREE.MeshBasicMaterial({ map: videoTexture });
-  var mesh2 = new THREE.Mesh(geometry, videoMaterial);
-  mesh2.position.z = 200;
-  mesh2.position.x = 140;
-  mesh2.position.y = 400;
-  mesh2.lookAt(camera.position);
-  mesh2.scale.set(0.04, 0.04, 0.04);
-  scene.add(mesh2);
+    controls.addEventListener("unlock", function () {
+      blocker.style.display = "block";
+      instructions.style.display = "";
+    });
 
-  var vertices = geometry.attributes.position.array;
+    scene.add(controls.getObject());
 
-  for (var i = 0, j = 0, l = vertices.length; i < l; i++, j += 3) {
-    vertices[j + 1] = data[i] * 10;
+    var onKeyDown = function (event) {
+      switch (event.keyCode) {
+        case 38: // up
+        case 87: // w
+          moveForward = true;
+          break;
+
+        case 37: // left
+        case 65: // a
+          moveLeft = true;
+          break;
+
+        case 40: // down
+        case 83: // s
+          moveBackward = true;
+          break;
+
+        case 39: // right
+        case 68: // d
+          moveRight = true;
+          break;
+
+        case 32: // space
+          if (canJump === true) velocity.y += 350;
+          canJump = false;
+          break;
+      }
+    };
+
+    var onKeyUp = function (event) {
+      switch (event.keyCode) {
+        case 38: // up
+        case 87: // w
+          moveForward = false;
+          break;
+
+        case 37: // left
+        case 65: // a
+          moveLeft = false;
+          break;
+
+        case 40: // down
+        case 83: // s
+          moveBackward = false;
+          break;
+
+        case 39: // right
+        case 68: // d
+          moveRight = false;
+          break;
+      }
+    };
+
+    document.addEventListener("keydown", onKeyDown, false);
+    document.addEventListener("keyup", onKeyUp, false);
+
+    raycaster = new THREE.Raycaster(
+      new THREE.Vector3(),
+      new THREE.Vector3(0, -1, 0),
+      0,
+      10
+    );
   }
 
-  texture = new THREE.CanvasTexture(
-    generateTexture(data, worldWidth, worldDepth)
-  );
-  texture.wrapS = THREE.ClampToEdgeWrapping;
-  texture.wrapT = THREE.ClampToEdgeWrapping;
+  // this function is not self contained also check the animate function
+  // to understand how controls work
+  initControls();
 
-  mesh = new THREE.Mesh(
-    geometry,
-    new THREE.MeshBasicMaterial({ map: texture })
-  );
-  scene.add(mesh);
+  // floor
+  function initFloor() {
+    var floorGeometry = new THREE.PlaneBufferGeometry(2000, 2000, 100, 100);
+    // 1 sets the flor vertically 2 makes it horizontal
+    floorGeometry.rotateX(-Math.PI / 2);
 
-  renderer = new THREE.WebGLRenderer();
+    // vertex displacement
+
+    var position = floorGeometry.attributes.position;
+
+    for (var i = 0, l = position.count; i < l; i++) {
+      vertex.fromBufferAttribute(position, i);
+
+      vertex.x += Math.random() * 40 - 10;
+      vertex.y += Math.random() * 2;
+      vertex.z += Math.random() * 20 - 10;
+
+      position.setXYZ(i, vertex.x, vertex.y, vertex.z);
+    }
+
+    floorGeometry = floorGeometry.toNonIndexed(); // ensure each face has unique vertices
+
+    position = floorGeometry.attributes.position;
+    var colors = [];
+
+    for (var i = 0, l = position.count; i < l; i++) {
+      color.setHSL(
+        Math.random() * 0.3 + 0.5,
+        0.75,
+        Math.random() * 0.25 + 0.75
+      );
+      colors.push(color.r, color.g, color.b);
+    }
+
+    floorGeometry.setAttribute(
+      "color",
+      new THREE.Float32BufferAttribute(colors, 3)
+    );
+
+    var floorMaterial = new THREE.MeshBasicMaterial({ vertexColors: true });
+
+    var floor = new THREE.Mesh(floorGeometry, floorMaterial);
+    scene.add(floor);
+  }
+  initFloor();
+
+  // objects
+  function initObjects() {
+    var boxGeometry = new THREE.BoxBufferGeometry(20, 20, 20);
+    boxGeometry = boxGeometry.toNonIndexed(); // ensure each face has unique vertices
+
+    const position = boxGeometry.attributes.position;
+    const colors = [];
+
+    for (var i = 0, l = position.count; i < l; i++) {
+      color.setHSL(
+        Math.random() * 0.3 + 0.5,
+        0.75,
+        Math.random() * 0.25 + 0.75
+      );
+      colors.push(color.r, color.g, color.b);
+    }
+
+    boxGeometry.setAttribute(
+      "color",
+      new THREE.Float32BufferAttribute(colors, 3)
+    );
+
+    for (var i = 0; i < 500; i++) {
+      var boxMaterial = new THREE.MeshPhongMaterial({
+        specular: 0xffffff,
+        flatShading: true,
+        vertexColors: true
+      });
+      boxMaterial.color.setHSL(
+        Math.random() * 0.2 + 0.5,
+        0.75,
+        Math.random() * 0.25 + 0.75
+      );
+
+      var box = new THREE.Mesh(boxGeometry, boxMaterial);
+      box.position.x = Math.floor(Math.random() * 20 - 10) * 20;
+      box.position.y = Math.floor(Math.random() * 20) * 20 + 10;
+      box.position.z = Math.floor(Math.random() * 20 - 10) * 20;
+
+      scene.add(box);
+      objects.push(box);
+    }
+  }
+
+  // insert webcam on mesh
+
+  function initWebcamPermission() {
+    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+      var constraints = {
+        video: { width: 1280, height: 720, facingMode: "user" }
+      };
+
+      navigator.mediaDevices
+        .getUserMedia(constraints)
+        .then(function (stream) {
+          // apply the stream to the video element used in the texture
+
+          video.srcObject = stream;
+          video.play();
+        })
+        .catch(function (error) {
+          console.error("Unable to access the camera/webcam.", error);
+        });
+    } else {
+      console.error("MediaDevices interface not available.");
+    }
+  }
+  initWebcamPermission();
+
+  // this creates a plane with a webcam texture on it
+  function initPlane() {
+    const video = document.getElementById("video");
+    const texture = new THREE.VideoTexture(video);
+
+    var geometry = new THREE.PlaneGeometry(1280, 720, 32);
+    geometry.scale( 0.1, 0.1, 0.1 );
+
+    var material = new THREE.MeshBasicMaterial({
+      map: texture
+    });
+    var plane = new THREE.Mesh(geometry, material);
+    // position webcam infron of camera
+    plane.position.y = 50;
+    plane.position.z = -150;
+    scene.add(plane);
+  }
+  initPlane();
+
+  renderer = new THREE.WebGLRenderer({ antialias: true });
   renderer.setPixelRatio(window.devicePixelRatio);
   renderer.setSize(window.innerWidth, window.innerHeight);
-  container.appendChild(renderer.domElement);
-
-  controls = new FirstPersonControls(camera, renderer.domElement);
-  controls.movementSpeed = 1000;
-  controls.lookSpeed = 0.1;
+  document.body.appendChild(renderer.domElement);
 
   //
 
   window.addEventListener("resize", onWindowResize, false);
-  if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-    var constraints = {
-      video: { width: 1280, height: 720, facingMode: "user" }
-    };
-
-    navigator.mediaDevices
-      .getUserMedia(constraints)
-      .then(function (stream) {
-        // apply the stream to the video element used in the texture
-
-        video.srcObject = stream;
-        video.play();
-      })
-      .catch(function (error) {
-        console.error("Unable to access the camera/webcam.", error);
-      });
-  } else {
-    console.error("MediaDevices interface not available.");
-  }
 }
 
 function onWindowResize() {
@@ -116,147 +283,53 @@ function onWindowResize() {
   camera.updateProjectionMatrix();
 
   renderer.setSize(window.innerWidth, window.innerHeight);
-
-  controls.handleResize();
 }
-
-function generateHeight(width, height) {
-  var size = width * height,
-    data = new Uint8Array(size),
-    perlin = new ImprovedNoise(),
-    quality = 1,
-    z = Math.random() * 100;
-
-  for (var j = 0; j < 4; j++) {
-    for (var i = 0; i < size; i++) {
-      var x = i % width,
-        y = ~~(i / width);
-      data[i] += Math.abs(
-        perlin.noise(x / quality, y / quality, z) * quality * 1.75
-      );
-    }
-
-    quality *= 5;
-  }
-
-  return data;
-}
-
-function generateTexture(data, width, height) {
-  var canvas, canvasScaled, context, image, imageData, vector3, sun, shade;
-
-  vector3 = new THREE.Vector3(0, 0, 0);
-
-  sun = new THREE.Vector3(1, 1, 1);
-  sun.normalize();
-
-  canvas = document.createElement("canvas");
-  canvas.width = width;
-  canvas.height = height;
-
-  context = canvas.getContext("2d");
-  context.fillStyle = "#000";
-  context.fillRect(0, 0, width, height);
-
-  image = context.getImageData(0, 0, canvas.width, canvas.height);
-  imageData = image.data;
-
-  for (var i = 0, j = 0, l = imageData.length; i < l; i += 4, j++) {
-    vector3.x = data[j - 2] - data[j + 2];
-    vector3.y = 2;
-    vector3.z = data[j - width * 2] - data[j + width * 2];
-    vector3.normalize();
-
-    shade = vector3.dot(sun);
-
-    imageData[i] = (96 + shade * 128) * (0.5 + data[j] * 0.007);
-    imageData[i + 1] = (32 + shade * 96) * (0.5 + data[j] * 0.007);
-    imageData[i + 2] = shade * 96 * (0.5 + data[j] * 0.007);
-  }
-
-  context.putImageData(image, 0, 0);
-
-  // Scaled 4x
-
-  canvasScaled = document.createElement("canvas");
-  canvasScaled.width = width * 4;
-  canvasScaled.height = height * 4;
-
-  context = canvasScaled.getContext("2d");
-  context.scale(4, 4);
-  context.drawImage(canvas, 0, 0);
-
-  image = context.getImageData(0, 0, canvasScaled.width, canvasScaled.height);
-  imageData = image.data;
-
-  for (var i = 0, l = imageData.length; i < l; i += 4) {
-    var v = ~~(Math.random() * 5);
-
-    imageData[i] += v;
-    imageData[i + 1] += v;
-    imageData[i + 2] += v;
-  }
-
-  context.putImageData(image, 0, 0);
-
-  return canvasScaled;
-}
-
-//
 
 function animate() {
   requestAnimationFrame(animate);
 
-  render();
-}
+  if (controls.isLocked === true) {
+    raycaster.ray.origin.copy(controls.getObject().position);
+    raycaster.ray.origin.y -= 10;
 
-function render() {
-  controls.update(clock.getDelta());
-  renderer.render(scene, camera);
-}
+    var intersections = raycaster.intersectObjects(objects);
 
-function main() {
-  // setup canvas
-  const canvas = document.querySelector("#c");
+    var onObject = intersections.length > 0;
 
-  const renderer = new THREE.WebGLRenderer({ canvas });
+    var time = performance.now();
+    var delta = (time - prevTime) / 1000;
 
-  // setup camera
+    velocity.x -= velocity.x * 10.0 * delta;
+    velocity.z -= velocity.z * 10.0 * delta;
 
-  const fov = 75;
-  const aspect = 2;
-  const near = 0.1;
-  const far = 5;
-  const camera = new THREE.PerspectiveCamera(fov, aspect, near, far);
-  camera.position.z = 2;
+    velocity.y -= 9.8 * 100.0 * delta; // 100.0 = mass
 
-  // setup scene
+    direction.z = Number(moveForward) - Number(moveBackward);
+    direction.x = Number(moveRight) - Number(moveLeft);
+    direction.normalize(); // this ensures consistent movements in all directions
 
-  const scene = new THREE.Scene();
+    if (moveForward || moveBackward) velocity.z -= direction.z * 400.0 * delta;
+    if (moveLeft || moveRight) velocity.x -= direction.x * 400.0 * delta;
 
-  // setup geometry for mesh
+    if (onObject === true) {
+      velocity.y = Math.max(0, velocity.y);
+      canJump = true;
+    }
 
-  const boxWidth = 1;
-  const boxHeight = 1;
-  const boxDepth = 1;
-  const geometry = new THREE.BoxGeometry(boxWidth, boxHeight, boxDepth);
+    controls.moveRight(-velocity.x * delta);
+    controls.moveForward(-velocity.z * delta);
 
-  // setup material for mesh
+    controls.getObject().position.y += velocity.y * delta; // new behavior
 
-  const material = new THREE.MeshBasicMaterial({ color: "green" });
+    if (controls.getObject().position.y < 10) {
+      velocity.y = 0;
+      controls.getObject().position.y = 10;
 
-  // compose mesh from geomtry and material','""','
-  const cube = new THREE.Mesh(geometry, material);
+      canJump = true;
+    }
 
-  scene.add(cube);
-
-  renderer.render(scene, camera);
-  function render(time) {
-    time *= 0.002;
-    cube.rotation.x = time;
-    renderer.render(scene, camera);
-    requestAnimationFrame(render);
+    prevTime = time;
   }
-  requestAnimationFrame(render);
+
+  renderer.render(scene, camera);
 }
-main();
