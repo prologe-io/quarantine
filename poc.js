@@ -1,31 +1,6 @@
 import * as THREE from "./three.module.js";
 
 import { PointerLockControls } from "./PointerLockControls.js";
-import { create, join } from "./webrtc";
-
-import * as firebase from "firebase/app";
-
-// If you enabled Analytics in your project, add the Firebase SDK for Analytics
-import "firebase/analytics";
-
-// Add the Firebase products that you want to use
-import "firebase/auth";
-import "firebase/firestore";
-
-const firebaseConfig = {
-  apiKey: "AIzaSyDkZH4Gue8fJazZXsPhXYJKB_Q0PmEsPWE",
-  authDomain: "poc-multiplayer.firebaseapp.com",
-  databaseURL: "https://poc-multiplayer.firebaseio.com",
-  projectId: "poc-multiplayer",
-  storageBucket: "poc-multiplayer.appspot.com",
-  messagingSenderId: "37545506837",
-  appId: "1:37545506837:web:531f1a58b6ccf55375361c",
-  measurementId: "G-P9Y1DN7ZG0"
-};
-
-firebase.initializeApp(firebaseConfig);
-
-
 
 let camera, scene, renderer, controls;
 
@@ -46,27 +21,6 @@ let direction = new THREE.Vector3();
 init();
 animate();
 
-function initWebcamPermission() {
-  if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-    var constraints = {
-      video: { width: 1280, height: 720, facingMode: "user" }
-    };
-
-    navigator.mediaDevices
-      .getUserMedia(constraints)
-      .then(function (stream) {
-        // apply the stream to the video element used in the texture
-
-        video.srcObject = stream;
-        video.play();
-      })
-      .catch(function (error) {
-        console.error("Unable to access the camera/webcam.", error);
-      });
-  } else {
-    console.error("MediaDevices interface not available.");
-  }
-}
 function onWindowResize() {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
@@ -74,8 +28,8 @@ function onWindowResize() {
   renderer.setSize(window.innerWidth, window.innerHeight);
 }
 
-function planeFactory() {
-  const video = document.getElementById("remoteVideo");
+function planeFactory(src, position = { x: 100 }) {
+  const video = document.getElementById(src);
   const texture = new THREE.VideoTexture(video);
 
   var geometry = new THREE.PlaneGeometry(1280, 720, 32);
@@ -86,6 +40,7 @@ function planeFactory() {
   });
   var plane = new THREE.Mesh(geometry, material);
   // position webcam infron of camera
+  plane.position.x = position.x;
   plane.position.y = 50;
   plane.position.z = -150;
   plane.material.side = THREE.DoubleSide;
@@ -134,10 +89,6 @@ function floorFactory() {
 }
 
 function init() {
-
-  window.location.pathname.includes("creator") ? create() : join(window.location.pathname.substring(1));
-  console.log(window.location.pathname.includes('creator'))
-
   camera = new THREE.PerspectiveCamera(
     75,
     window.innerWidth / window.innerHeight,
@@ -252,12 +203,12 @@ function init() {
   const floor = floorFactory();
   scene.add(floor);
 
-
-
   // this creates a plane with a webcam texture on it
 
-  const plane = planeFactory();
-  scene.add(plane);
+  const remoteWebcam = planeFactory("remoteVideo");
+  scene.add(remoteWebcam);
+  const localWebcam = planeFactory("localVideo", {x: -30});
+  scene.add(localWebcam);
 
   renderer = new THREE.WebGLRenderer({ antialias: true });
   renderer.setPixelRatio(window.devicePixelRatio);

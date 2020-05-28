@@ -189,6 +189,7 @@ async function openUserMedia(e) {
   localStream = stream;
   remoteStream = new MediaStream();
   document.querySelector("#remoteVideo").srcObject = remoteStream;
+  document.querySelector("#remoteVideo").play() 
 
   console.log("Stream:", document.querySelector("#localVideo").srcObject);
   }
