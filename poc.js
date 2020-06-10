@@ -33,8 +33,28 @@ function onWindowResize() {
   renderer.setSize(window.innerWidth, window.innerHeight);
 }
 
+function loadYoutube(src, position = { x: 100 }) {
+  const video = document.getElementsByClassName(src);
+  const texture = new THREE.VideoTexture(video);
+
+  var geometry = new THREE.PlaneGeometry(640, 360, 16);
+  geometry.scale(0.1, 0.1, 0.1);
+
+  var material = new THREE.MeshBasicMaterial({
+    map: texture
+  });
+  var plane = new THREE.Mesh(geometry, material);
+  // position webcam infron of camera
+  plane.position.x = position.x;
+  plane.position.y = 50;
+  plane.position.z = -150;
+  plane.material.side = THREE.DoubleSide;
+  return plane;
+
+}
+
 function planeFactory(src, position = { x: 100 }) {
-  const video = document.getElementById(src);
+  const video = document.getElementById(src)
   video.play();
   const texture = new THREE.VideoTexture(video);
 
@@ -215,7 +235,7 @@ function init() {
   scene.add(remoteWebcam);
   const localWebcam = planeFactory("localVideo", { x: -30 });
   scene.add(localWebcam);
-  const youtube = planeFactory("player1", { x: -90 });
+  const youtube = loadYoutube("video-stream html5-main-video", { x: -90 });
   scene.add(youtube);
 
 

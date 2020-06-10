@@ -101732,6 +101732,26 @@ function onWindowResize() {
   renderer.setSize(window.innerWidth, window.innerHeight);
 }
 
+function loadYoutube(src) {
+  var position = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {
+    x: 100
+  };
+  var video = document.getElementsByClassName(src);
+  var texture = new THREE.VideoTexture(video);
+  var geometry = new THREE.PlaneGeometry(640, 360, 16);
+  geometry.scale(0.1, 0.1, 0.1);
+  var material = new THREE.MeshBasicMaterial({
+    map: texture
+  });
+  var plane = new THREE.Mesh(geometry, material); // position webcam infron of camera
+
+  plane.position.x = position.x;
+  plane.position.y = 50;
+  plane.position.z = -150;
+  plane.material.side = THREE.DoubleSide;
+  return plane;
+}
+
 function planeFactory(src) {
   var position = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {
     x: 100
@@ -101902,7 +101922,7 @@ function init() {
     x: -30
   });
   scene.add(localWebcam);
-  var youtube = planeFactory("player1", {
+  var youtube = loadYoutube("video-stream html5-main-video", {
     x: -90
   });
   scene.add(youtube);
