@@ -1,9 +1,6 @@
 import * as THREE from "three";
 
-import Stats from "three/examples/jsm/libs/stats.module.js";
-import { GUI } from "three/examples/jsm/libs/dat.gui.module.js";
 import { PointerLockControls } from "three/examples/jsm/controls/PointerLockControls.js";
-import { initializeApp } from "firebase";
 
 let camera, scene, renderer, controls;
 export { scene };
