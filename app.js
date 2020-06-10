@@ -1,10 +1,7 @@
-import * as firebase from "firebase/app";
-
+import firebase from "firebase/app";
 // If you enabled Analytics in your project, add the Firebase SDK for Analytics
 import "firebase/analytics";
-
 // Add the Firebase products that you want to use
-import "firebase/auth";
 import "firebase/firestore";
 
 const firebaseConfig = {
@@ -223,6 +220,7 @@ async function openUserMedia(e) {
   document.querySelector("#joinBtn").disabled = false;
   document.querySelector("#createBtn").disabled = false;
   document.querySelector("#hangupBtn").disabled = false;
+
 }
 
 async function hangUp(e) {

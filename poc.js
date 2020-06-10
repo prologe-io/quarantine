@@ -1,6 +1,8 @@
-import * as THREE from "./three.module.js";
+import * as THREE from "three";
 
-import { PointerLockControls } from "./PointerLockControls.js";
+import Stats from "three/examples/jsm/libs/stats.module.js";
+import { GUI } from "three/examples/jsm/libs/dat.gui.module.js";
+import { PointerLockControls } from "three/examples/jsm/controls/PointerLockControls.js";
 
 let camera, scene, renderer, controls;
 
@@ -30,9 +32,10 @@ function onWindowResize() {
 
 function planeFactory(src, position = { x: 100 }) {
   const video = document.getElementById(src);
+  video.play()
   const texture = new THREE.VideoTexture(video);
 
-  var geometry = new THREE.PlaneGeometry(1280, 720, 32);
+  var geometry = new THREE.PlaneGeometry(640, 360, 16);
   geometry.scale(0.1, 0.1, 0.1);
 
   var material = new THREE.MeshBasicMaterial({
@@ -154,6 +157,7 @@ function init() {
           break;
 
         case 32: // space
+        
           if (canJump === true) velocity.y += 350;
           canJump = false;
           break;
@@ -207,13 +211,15 @@ function init() {
 
   const remoteWebcam = planeFactory("remoteVideo");
   scene.add(remoteWebcam);
-  const localWebcam = planeFactory("localVideo", {x: -30});
+  const localWebcam = planeFactory("localVideo", { x: -30 });
   scene.add(localWebcam);
 
   renderer = new THREE.WebGLRenderer({ antialias: true });
   renderer.setPixelRatio(window.devicePixelRatio);
   renderer.setSize(window.innerWidth, window.innerHeight);
-  document.body.appendChild(renderer.domElement);
+
+  const root = document.getElementById("root");
+  root.appendChild(renderer.domElement);
 
   //
 
