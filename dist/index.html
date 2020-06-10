@@ -57,10 +57,6 @@
           <i class="material-icons mdc-button__icon" aria-hidden="true">group_add</i>
           <span class="mdc-button__label">Create room</span>
         </button>
-        <button class="mdc-button mdc-button--raised" disabled="" id="joinBtn">
-          <i class="material-icons mdc-button__icon" aria-hidden="true">group</i>
-          <span class="mdc-button__label">Join room</span>
-        </button>
         <button class="mdc-button mdc-button--raised" disabled="" id="hangupBtn">
           <i class="material-icons mdc-button__icon" aria-hidden="true">close</i>
           <span class="mdc-button__label">Hangup</span>
@@ -110,13 +106,9 @@
     </div>
     <div id="videos">
       <video style="visibility: hidden;" id="localVideo" playsinline="" muted=""></video>
-      <video style="visibility: hidden;" id="remoteVideo" autoplay="" playsinline=""></video>
-      <video playsinline="" style="visibility: hidden" height="640" id="player1">
-        <source type="video/youtube" src="http://www.youtube.com/watch?v=nOEw9iiopwI">
-    </video>
-    -    <div id="player"></div>
+      <video style="visibility: hidden;" id="remoteVideo" playsinline=""></video>
+   -    <div id="player" style="display: none;"></div>
     <script src="/poc.93398f59.js"></script>
     <script src="/app.c328ef1a.js"></script>
-    <script src="/yt.9f2c9e82.js"></script>
   </div></body>
 </html>

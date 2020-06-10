@@ -70,12 +70,6 @@
           >
           <span class="mdc-button__label">Create room</span>
         </button>
-        <button class="mdc-button mdc-button--raised" disabled id="joinBtn">
-          <i class="material-icons mdc-button__icon" aria-hidden="true"
-            >group</i
-          >
-          <span class="mdc-button__label">Join room</span>
-        </button>
         <button class="mdc-button mdc-button--raised" disabled id="hangupBtn">
           <i class="material-icons mdc-button__icon" aria-hidden="true"
             >close</i
@@ -132,7 +126,7 @@
       </div>
     </div>
     <div id="root" >
-      <div id="blocker">
+      <div id="blocker" >
         <div id="instructions">
           fam
           <span style="font-size: 36px;">Click to play</span>
@@ -153,18 +147,10 @@
       <video
         style="visibility: hidden;"
         id="remoteVideo"
-        autoplay
         playsinline
       ></video>
-      <video 
-      playsinline
-      style="visibility: hidden" height="640" height="360" id="player1" 
-      >
-        <source type="video/youtube" src="http://www.youtube.com/watch?v=nOEw9iiopwI" />
-    </video>
-    -    <div id="player"></div>
+   -    <div id="player" style="display: none;" ></div>
     <script src="poc.js"></script>
     <script src="app.js"></script>
-    <script src="yt.js"></script>
   </body>
 </html>

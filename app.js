@@ -3,7 +3,7 @@ import firebase from "firebase/app";
 import "firebase/analytics";
 // Add the Firebase products that you want to use
 import "firebase/firestore";
-import { initKlub } from "./poc";
+import { initKlub, initRemote } from "./poc";
 
 const firebaseConfig = {
   apiKey: "AIzaSyDkZH4Gue8fJazZXsPhXYJKB_Q0PmEsPWE",
@@ -32,21 +32,26 @@ const configuration = {
 let peerConnection = null;
 let localStream = null;
 let remoteStream = null;
-let roomDialog = null;
 let roomId = null;
 
 function init() {
   document.querySelector("#hangupBtn").addEventListener("click", hangUp);
   document.querySelector("#createBtn").addEventListener("click", createRoom);
-  document.querySelector("#joinBtn").addEventListener("click", joinRoom);
-  roomDialog = new mdc.dialog.MDCDialog(document.querySelector("#room-dialog"));
+
+  const PATH = "/room/";
+  const isJoining = window.location.pathname.includes(PATH);
+  const newRoomId = isJoining && window.location.pathname.replace(PATH, "");
+  if (isJoining) {
+    document.querySelector("#calling").remove();
+    initKlub();
+    joinRoomById(newRoomId);
+  }
 }
 
 async function createRoom() {
-  await openUserMedia()
-  initKlub()
+  await openUserMedia();
+  initKlub();
   document.querySelector("#createBtn").disabled = true;
-  document.querySelector("#joinBtn").disabled = true;
   const db = firebase.firestore();
   const roomRef = await db.collection("rooms").doc();
 
@@ -86,9 +91,8 @@ async function createRoom() {
   await roomRef.set(roomWithOffer);
   roomId = roomRef.id;
   console.log(`New room created with SDP offer. Room ID: ${roomRef.id}`);
-  document.querySelector(
-    "#currentRoom"
-  ).innerText = `Current room is ${roomRef.id} - You are the caller!`;
+  window.history.pushState(`room ${roomId}`, "Title", `/room/${roomId}`);
+
   // Code for creating a room above
 
   peerConnection.addEventListener("track", (event) => {
@@ -97,6 +101,8 @@ async function createRoom() {
       console.log("Add a track to the remoteStream:", track);
       remoteStream.addTrack(track);
     });
+
+    initRemote();
   });
 
   // Listening for remote session description below
@@ -123,26 +129,9 @@ async function createRoom() {
   // Listen for remote ICE candidates above
 }
 
-function joinRoom() {
-  document.querySelector("#createBtn").disabled = true;
-  document.querySelector("#joinBtn").disabled = true;
-
-  document.querySelector("#confirmJoinBtn").addEventListener(
-    "click",
-    async () => {
-      roomId = document.querySelector("#room-id").value;
-      console.log("Join room: ", roomId);
-      document.querySelector(
-        "#currentRoom"
-      ).innerText = `Current room is ${roomId} - You are the callee!`;
-      await joinRoomById(roomId);
-    },
-    { once: true }
-  );
-  roomDialog.open();
-}
-
 async function joinRoomById(roomId) {
+  await openUserMedia();
+
   const db = firebase.firestore();
   const roomRef = db.collection("rooms").doc(`${roomId}`);
   const roomSnapshot = await roomRef.get();
@@ -172,6 +161,7 @@ async function joinRoomById(roomId) {
       console.log("Got remote track:", event.streams[0]);
       event.streams[0].getTracks().forEach((track) => {
         console.log("Add a track to the remoteStream:", track);
+
         remoteStream.addTrack(track);
       });
     });
@@ -218,7 +208,6 @@ async function openUserMedia(e) {
   document.querySelector("#remoteVideo").srcObject = remoteStream;
 
   console.log("Stream:", document.querySelector("#localVideo").srcObject);
-  document.querySelector("#joinBtn").disabled = false;
   document.querySelector("#createBtn").disabled = false;
   document.querySelector("#hangupBtn").disabled = false;
 }
@@ -239,7 +228,6 @@ async function hangUp(e) {
 
   document.querySelector("#localVideo").srcObject = null;
   document.querySelector("#remoteVideo").srcObject = null;
-  document.querySelector("#joinBtn").disabled = true;
   document.querySelector("#createBtn").disabled = true;
   document.querySelector("#hangupBtn").disabled = true;
   document.querySelector("#currentRoom").innerText = "";

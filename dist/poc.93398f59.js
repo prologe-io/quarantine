@@ -101689,7 +101689,8 @@ module.exports = firebase;
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-exports.initKlub = void 0;
+exports.planeFactory = planeFactory;
+exports.initRemote = exports.initKlub = exports.scene = void 0;
 
 var THREE = _interopRequireWildcard(require("three"));
 
@@ -101708,6 +101709,7 @@ function _getRequireWildcardCache() { if (typeof WeakMap !== "function") return 
 function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } if (obj === null || typeof obj !== "object" && typeof obj !== "function") { return { default: obj }; } var cache = _getRequireWildcardCache(); if (cache && cache.has(obj)) { return cache.get(obj); } var newObj = {}; var hasPropertyDescriptor = Object.defineProperty && Object.getOwnPropertyDescriptor; for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) { var desc = hasPropertyDescriptor ? Object.getOwnPropertyDescriptor(obj, key) : null; if (desc && (desc.get || desc.set)) { Object.defineProperty(newObj, key, desc); } else { newObj[key] = obj[key]; } } } newObj.default = obj; if (cache) { cache.set(obj, newObj); } return newObj; }
 
 var camera, scene, renderer, controls;
+exports.scene = scene;
 var objects = [];
 var raycaster;
 var moveForward = false;
@@ -101726,30 +101728,19 @@ var initKlub = function initKlub() {
 
 exports.initKlub = initKlub;
 
+var initRemote = function initRemote() {
+  var remoteWebcam = planeFactory("remoteVideo", {
+    x: -100
+  });
+  scene.add(remoteWebcam);
+};
+
+exports.initRemote = initRemote;
+
 function onWindowResize() {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
-}
-
-function loadYoutube(src) {
-  var position = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {
-    x: 100
-  };
-  var video = document.getElementsByClassName(src);
-  var texture = new THREE.VideoTexture(video);
-  var geometry = new THREE.PlaneGeometry(640, 360, 16);
-  geometry.scale(0.1, 0.1, 0.1);
-  var material = new THREE.MeshBasicMaterial({
-    map: texture
-  });
-  var plane = new THREE.Mesh(geometry, material); // position webcam infron of camera
-
-  plane.position.x = position.x;
-  plane.position.y = 50;
-  plane.position.z = -150;
-  plane.material.side = THREE.DoubleSide;
-  return plane;
 }
 
 function planeFactory(src) {
@@ -101810,7 +101801,7 @@ function floorFactory() {
 function init() {
   camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 1, 1000);
   camera.position.y = 10;
-  scene = new THREE.Scene();
+  exports.scene = scene = new THREE.Scene();
   scene.background = new THREE.Color(0xffffff);
   scene.fog = new THREE.Fog(0xffffff, 0, 750);
   var light = new THREE.HemisphereLight(0xeeeeff, 0x777788, 0.75);
@@ -101916,16 +101907,10 @@ function init() {
   var floor = floorFactory();
   scene.add(floor); // this creates a plane with a webcam texture on it
 
-  var remoteWebcam = planeFactory("remoteVideo");
-  scene.add(remoteWebcam);
   var localWebcam = planeFactory("localVideo", {
     x: -30
   });
   scene.add(localWebcam);
-  var youtube = loadYoutube("video-stream html5-main-video", {
-    x: -90
-  });
-  scene.add(youtube);
   renderer = new THREE.WebGLRenderer({
     antialias: true
   });

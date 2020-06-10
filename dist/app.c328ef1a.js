@@ -102500,7 +102500,8 @@ module.exports = firebase;
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-exports.initKlub = void 0;
+exports.planeFactory = planeFactory;
+exports.initRemote = exports.initKlub = exports.scene = void 0;
 
 var THREE = _interopRequireWildcard(require("three"));
 
@@ -102519,6 +102520,7 @@ function _getRequireWildcardCache() { if (typeof WeakMap !== "function") return 
 function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } if (obj === null || typeof obj !== "object" && typeof obj !== "function") { return { default: obj }; } var cache = _getRequireWildcardCache(); if (cache && cache.has(obj)) { return cache.get(obj); } var newObj = {}; var hasPropertyDescriptor = Object.defineProperty && Object.getOwnPropertyDescriptor; for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) { var desc = hasPropertyDescriptor ? Object.getOwnPropertyDescriptor(obj, key) : null; if (desc && (desc.get || desc.set)) { Object.defineProperty(newObj, key, desc); } else { newObj[key] = obj[key]; } } } newObj.default = obj; if (cache) { cache.set(obj, newObj); } return newObj; }
 
 var camera, scene, renderer, controls;
+exports.scene = scene;
 var objects = [];
 var raycaster;
 var moveForward = false;
@@ -102537,30 +102539,19 @@ var initKlub = function initKlub() {
 
 exports.initKlub = initKlub;
 
+var initRemote = function initRemote() {
+  var remoteWebcam = planeFactory("remoteVideo", {
+    x: -100
+  });
+  scene.add(remoteWebcam);
+};
+
+exports.initRemote = initRemote;
+
 function onWindowResize() {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
-}
-
-function loadYoutube(src) {
-  var position = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {
-    x: 100
-  };
-  var video = document.getElementsByClassName(src);
-  var texture = new THREE.VideoTexture(video);
-  var geometry = new THREE.PlaneGeometry(640, 360, 16);
-  geometry.scale(0.1, 0.1, 0.1);
-  var material = new THREE.MeshBasicMaterial({
-    map: texture
-  });
-  var plane = new THREE.Mesh(geometry, material); // position webcam infron of camera
-
-  plane.position.x = position.x;
-  plane.position.y = 50;
-  plane.position.z = -150;
-  plane.material.side = THREE.DoubleSide;
-  return plane;
 }
 
 function planeFactory(src) {
@@ -102621,7 +102612,7 @@ function floorFactory() {
 function init() {
   camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 1, 1000);
   camera.position.y = 10;
-  scene = new THREE.Scene();
+  exports.scene = scene = new THREE.Scene();
   scene.background = new THREE.Color(0xffffff);
   scene.fog = new THREE.Fog(0xffffff, 0, 750);
   var light = new THREE.HemisphereLight(0xeeeeff, 0x777788, 0.75);
@@ -102727,16 +102718,10 @@ function init() {
   var floor = floorFactory();
   scene.add(floor); // this creates a plane with a webcam texture on it
 
-  var remoteWebcam = planeFactory("remoteVideo");
-  scene.add(remoteWebcam);
   var localWebcam = planeFactory("localVideo", {
     x: -30
   });
   scene.add(localWebcam);
-  var youtube = loadYoutube("video-stream html5-main-video", {
-    x: -90
-  });
-  scene.add(youtube);
   renderer = new THREE.WebGLRenderer({
     antialias: true
   });
@@ -102831,14 +102816,20 @@ var configuration = {
 var peerConnection = null;
 var localStream = null;
 var remoteStream = null;
-var roomDialog = null;
 var roomId = null;
 
 function init() {
   document.querySelector("#hangupBtn").addEventListener("click", hangUp);
   document.querySelector("#createBtn").addEventListener("click", createRoom);
-  document.querySelector("#joinBtn").addEventListener("click", joinRoom);
-  roomDialog = new mdc.dialog.MDCDialog(document.querySelector("#room-dialog"));
+  var PATH = "/room/";
+  var isJoining = window.location.pathname.includes(PATH);
+  var newRoomId = isJoining && window.location.pathname.replace(PATH, "");
+
+  if (isJoining) {
+    document.querySelector("#calling").remove();
+    (0, _poc.initKlub)();
+    joinRoomById(newRoomId);
+  }
 }
 
 function createRoom() {
@@ -102846,25 +102837,24 @@ function createRoom() {
 }
 
 function _createRoom() {
-  _createRoom = (0, _asyncToGenerator2.default)( /*#__PURE__*/_regenerator.default.mark(function _callee4() {
+  _createRoom = (0, _asyncToGenerator2.default)( /*#__PURE__*/_regenerator.default.mark(function _callee3() {
     var db, roomRef, callerCandidatesCollection, offer, roomWithOffer;
-    return _regenerator.default.wrap(function _callee4$(_context4) {
+    return _regenerator.default.wrap(function _callee3$(_context3) {
       while (1) {
-        switch (_context4.prev = _context4.next) {
+        switch (_context3.prev = _context3.next) {
           case 0:
-            _context4.next = 2;
+            _context3.next = 2;
             return openUserMedia();
 
           case 2:
             (0, _poc.initKlub)();
             document.querySelector("#createBtn").disabled = true;
-            document.querySelector("#joinBtn").disabled = true;
             db = _app.default.firestore();
-            _context4.next = 8;
+            _context3.next = 7;
             return db.collection("rooms").doc();
 
-          case 8:
-            roomRef = _context4.sent;
+          case 7:
+            roomRef = _context3.sent;
             console.log("Create PeerConnection with configuration: ", configuration);
             peerConnection = new RTCPeerConnection(configuration);
             registerPeerConnectionListeners();
@@ -102884,15 +102874,15 @@ function _createRoom() {
             }); // Code for collecting ICE candidates above
             // Code for creating a room below
 
-            _context4.next = 17;
+            _context3.next = 16;
             return peerConnection.createOffer();
 
-          case 17:
-            offer = _context4.sent;
-            _context4.next = 20;
+          case 16:
+            offer = _context3.sent;
+            _context3.next = 19;
             return peerConnection.setLocalDescription(offer);
 
-          case 20:
+          case 19:
             console.log("Created offer:", offer);
             roomWithOffer = {
               offer: {
@@ -102900,13 +102890,13 @@ function _createRoom() {
                 sdp: offer.sdp
               }
             };
-            _context4.next = 24;
+            _context3.next = 23;
             return roomRef.set(roomWithOffer);
 
-          case 24:
+          case 23:
             roomId = roomRef.id;
             console.log("New room created with SDP offer. Room ID: ".concat(roomRef.id));
-            document.querySelector("#currentRoom").innerText = "Current room is ".concat(roomRef.id, " - You are the caller!"); // Code for creating a room above
+            window.history.pushState("room ".concat(roomId), "Title", "/room/".concat(roomId)); // Code for creating a room above
 
             peerConnection.addEventListener("track", function (event) {
               console.log("Got remote track:", event.streams[0]);
@@ -102914,107 +102904,82 @@ function _createRoom() {
                 console.log("Add a track to the remoteStream:", track);
                 remoteStream.addTrack(track);
               });
+              (0, _poc.initRemote)();
             }); // Listening for remote session description below
 
             roomRef.onSnapshot( /*#__PURE__*/function () {
-              var _ref2 = (0, _asyncToGenerator2.default)( /*#__PURE__*/_regenerator.default.mark(function _callee2(snapshot) {
+              var _ref = (0, _asyncToGenerator2.default)( /*#__PURE__*/_regenerator.default.mark(function _callee(snapshot) {
                 var data, rtcSessionDescription;
-                return _regenerator.default.wrap(function _callee2$(_context2) {
+                return _regenerator.default.wrap(function _callee$(_context) {
                   while (1) {
-                    switch (_context2.prev = _context2.next) {
+                    switch (_context.prev = _context.next) {
                       case 0:
                         data = snapshot.data();
 
                         if (!(!peerConnection.currentRemoteDescription && data && data.answer)) {
-                          _context2.next = 6;
+                          _context.next = 6;
                           break;
                         }
 
                         console.log("Got remote description: ", data.answer);
                         rtcSessionDescription = new RTCSessionDescription(data.answer);
-                        _context2.next = 6;
+                        _context.next = 6;
                         return peerConnection.setRemoteDescription(rtcSessionDescription);
 
                       case 6:
                       case "end":
-                        return _context2.stop();
+                        return _context.stop();
                     }
                   }
-                }, _callee2);
+                }, _callee);
               }));
 
               return function (_x4) {
-                return _ref2.apply(this, arguments);
+                return _ref.apply(this, arguments);
               };
             }()); // Listening for remote session description above
             // Listen for remote ICE candidates below
 
             roomRef.collection("calleeCandidates").onSnapshot(function (snapshot) {
               snapshot.docChanges().forEach( /*#__PURE__*/function () {
-                var _ref3 = (0, _asyncToGenerator2.default)( /*#__PURE__*/_regenerator.default.mark(function _callee3(change) {
+                var _ref2 = (0, _asyncToGenerator2.default)( /*#__PURE__*/_regenerator.default.mark(function _callee2(change) {
                   var data;
-                  return _regenerator.default.wrap(function _callee3$(_context3) {
+                  return _regenerator.default.wrap(function _callee2$(_context2) {
                     while (1) {
-                      switch (_context3.prev = _context3.next) {
+                      switch (_context2.prev = _context2.next) {
                         case 0:
                           if (!(change.type === "added")) {
-                            _context3.next = 5;
+                            _context2.next = 5;
                             break;
                           }
 
                           data = change.doc.data();
                           console.log("Got new remote ICE candidate: ".concat(JSON.stringify(data)));
-                          _context3.next = 5;
+                          _context2.next = 5;
                           return peerConnection.addIceCandidate(new RTCIceCandidate(data));
 
                         case 5:
                         case "end":
-                          return _context3.stop();
+                          return _context2.stop();
                       }
                     }
-                  }, _callee3);
+                  }, _callee2);
                 }));
 
                 return function (_x5) {
-                  return _ref3.apply(this, arguments);
+                  return _ref2.apply(this, arguments);
                 };
               }());
             }); // Listen for remote ICE candidates above
 
-          case 30:
+          case 29:
           case "end":
-            return _context4.stop();
+            return _context3.stop();
         }
       }
-    }, _callee4);
+    }, _callee3);
   }));
   return _createRoom.apply(this, arguments);
-}
-
-function joinRoom() {
-  document.querySelector("#createBtn").disabled = true;
-  document.querySelector("#joinBtn").disabled = true;
-  document.querySelector("#confirmJoinBtn").addEventListener("click", /*#__PURE__*/(0, _asyncToGenerator2.default)( /*#__PURE__*/_regenerator.default.mark(function _callee() {
-    return _regenerator.default.wrap(function _callee$(_context) {
-      while (1) {
-        switch (_context.prev = _context.next) {
-          case 0:
-            roomId = document.querySelector("#room-id").value;
-            console.log("Join room: ", roomId);
-            document.querySelector("#currentRoom").innerText = "Current room is ".concat(roomId, " - You are the callee!");
-            _context.next = 5;
-            return joinRoomById(roomId);
-
-          case 5:
-          case "end":
-            return _context.stop();
-        }
-      }
-    }, _callee);
-  })), {
-    once: true
-  });
-  roomDialog.open();
 }
 
 function joinRoomById(_x) {
@@ -103022,23 +102987,27 @@ function joinRoomById(_x) {
 }
 
 function _joinRoomById() {
-  _joinRoomById = (0, _asyncToGenerator2.default)( /*#__PURE__*/_regenerator.default.mark(function _callee6(roomId) {
+  _joinRoomById = (0, _asyncToGenerator2.default)( /*#__PURE__*/_regenerator.default.mark(function _callee5(roomId) {
     var db, roomRef, roomSnapshot, calleeCandidatesCollection, offer, answer, roomWithAnswer;
-    return _regenerator.default.wrap(function _callee6$(_context6) {
+    return _regenerator.default.wrap(function _callee5$(_context5) {
       while (1) {
-        switch (_context6.prev = _context6.next) {
+        switch (_context5.prev = _context5.next) {
           case 0:
+            _context5.next = 2;
+            return openUserMedia();
+
+          case 2:
             db = _app.default.firestore();
             roomRef = db.collection("rooms").doc("".concat(roomId));
-            _context6.next = 4;
+            _context5.next = 6;
             return roomRef.get();
 
-          case 4:
-            roomSnapshot = _context6.sent;
+          case 6:
+            roomSnapshot = _context5.sent;
             console.log("Got room:", roomSnapshot.exists);
 
             if (!roomSnapshot.exists) {
-              _context6.next = 28;
+              _context5.next = 30;
               break;
             }
 
@@ -103070,70 +103039,70 @@ function _joinRoomById() {
 
             offer = roomSnapshot.data().offer;
             console.log("Got offer:", offer);
-            _context6.next = 18;
+            _context5.next = 20;
             return peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
 
-          case 18:
-            _context6.next = 20;
+          case 20:
+            _context5.next = 22;
             return peerConnection.createAnswer();
 
-          case 20:
-            answer = _context6.sent;
+          case 22:
+            answer = _context5.sent;
             console.log("Created answer:", answer);
-            _context6.next = 24;
+            _context5.next = 26;
             return peerConnection.setLocalDescription(answer);
 
-          case 24:
+          case 26:
             roomWithAnswer = {
               answer: {
                 type: answer.type,
                 sdp: answer.sdp
               }
             };
-            _context6.next = 27;
+            _context5.next = 29;
             return roomRef.update(roomWithAnswer);
 
-          case 27:
+          case 29:
             // Code for creating SDP answer above
             // Listening for remote ICE candidates below
             roomRef.collection("callerCandidates").onSnapshot(function (snapshot) {
               snapshot.docChanges().forEach( /*#__PURE__*/function () {
-                var _ref4 = (0, _asyncToGenerator2.default)( /*#__PURE__*/_regenerator.default.mark(function _callee5(change) {
+                var _ref3 = (0, _asyncToGenerator2.default)( /*#__PURE__*/_regenerator.default.mark(function _callee4(change) {
                   var data;
-                  return _regenerator.default.wrap(function _callee5$(_context5) {
+                  return _regenerator.default.wrap(function _callee4$(_context4) {
                     while (1) {
-                      switch (_context5.prev = _context5.next) {
+                      switch (_context4.prev = _context4.next) {
                         case 0:
                           if (!(change.type === "added")) {
-                            _context5.next = 5;
+                            _context4.next = 5;
                             break;
                           }
 
                           data = change.doc.data();
                           console.log("Got new remote ICE candidate: ".concat(JSON.stringify(data)));
-                          _context5.next = 5;
+                          _context4.next = 5;
                           return peerConnection.addIceCandidate(new RTCIceCandidate(data));
 
                         case 5:
                         case "end":
-                          return _context5.stop();
+                          return _context4.stop();
                       }
                     }
-                  }, _callee5);
+                  }, _callee4);
                 }));
 
                 return function (_x6) {
-                  return _ref4.apply(this, arguments);
+                  return _ref3.apply(this, arguments);
                 };
               }());
             }); // Listening for remote ICE candidates above
 
-          case 28:
+          case 30:
           case "end":
-            return _context6.stop();
+            return _context5.stop();
         }
       }
-    }, _callee6);
+    }, _callee5);
   }));
   return _joinRoomById.apply(this, arguments);
 }
@@ -103143,35 +103112,34 @@ function openUserMedia(_x2) {
 }
 
 function _openUserMedia() {
-  _openUserMedia = (0, _asyncToGenerator2.default)( /*#__PURE__*/_regenerator.default.mark(function _callee7(e) {
+  _openUserMedia = (0, _asyncToGenerator2.default)( /*#__PURE__*/_regenerator.default.mark(function _callee6(e) {
     var stream;
-    return _regenerator.default.wrap(function _callee7$(_context7) {
+    return _regenerator.default.wrap(function _callee6$(_context6) {
       while (1) {
-        switch (_context7.prev = _context7.next) {
+        switch (_context6.prev = _context6.next) {
           case 0:
-            _context7.next = 2;
+            _context6.next = 2;
             return navigator.mediaDevices.getUserMedia({
               video: true,
               audio: true
             });
 
           case 2:
-            stream = _context7.sent;
+            stream = _context6.sent;
             document.querySelector("#localVideo").srcObject = stream;
             localStream = stream;
             remoteStream = new MediaStream();
             document.querySelector("#remoteVideo").srcObject = remoteStream;
             console.log("Stream:", document.querySelector("#localVideo").srcObject);
-            document.querySelector("#joinBtn").disabled = false;
             document.querySelector("#createBtn").disabled = false;
             document.querySelector("#hangupBtn").disabled = false;
 
-          case 11:
+          case 10:
           case "end":
-            return _context7.stop();
+            return _context6.stop();
         }
       }
-    }, _callee7);
+    }, _callee6);
   }));
   return _openUserMedia.apply(this, arguments);
 }
@@ -103181,11 +103149,11 @@ function hangUp(_x3) {
 }
 
 function _hangUp() {
-  _hangUp = (0, _asyncToGenerator2.default)( /*#__PURE__*/_regenerator.default.mark(function _callee10(e) {
+  _hangUp = (0, _asyncToGenerator2.default)( /*#__PURE__*/_regenerator.default.mark(function _callee9(e) {
     var tracks, db, roomRef, calleeCandidates, callerCandidates;
-    return _regenerator.default.wrap(function _callee10$(_context10) {
+    return _regenerator.default.wrap(function _callee9$(_context9) {
       while (1) {
-        switch (_context10.prev = _context10.next) {
+        switch (_context9.prev = _context9.next) {
           case 0:
             tracks = document.querySelector("#localVideo").srcObject.getTracks();
             tracks.forEach(function (track) {
@@ -103204,24 +103172,49 @@ function _hangUp() {
 
             document.querySelector("#localVideo").srcObject = null;
             document.querySelector("#remoteVideo").srcObject = null;
-            document.querySelector("#joinBtn").disabled = true;
             document.querySelector("#createBtn").disabled = true;
             document.querySelector("#hangupBtn").disabled = true;
             document.querySelector("#currentRoom").innerText = ""; // Delete room on hangup
 
             if (!roomId) {
-              _context10.next = 23;
+              _context9.next = 22;
               break;
             }
 
             db = _app.default.firestore();
             roomRef = db.collection("rooms").doc(roomId);
-            _context10.next = 15;
+            _context9.next = 14;
             return roomRef.collection("calleeCandidates").get();
 
-          case 15:
-            calleeCandidates = _context10.sent;
+          case 14:
+            calleeCandidates = _context9.sent;
             calleeCandidates.forEach( /*#__PURE__*/function () {
+              var _ref4 = (0, _asyncToGenerator2.default)( /*#__PURE__*/_regenerator.default.mark(function _callee7(candidate) {
+                return _regenerator.default.wrap(function _callee7$(_context7) {
+                  while (1) {
+                    switch (_context7.prev = _context7.next) {
+                      case 0:
+                        _context7.next = 2;
+                        return candidate.ref.delete();
+
+                      case 2:
+                      case "end":
+                        return _context7.stop();
+                    }
+                  }
+                }, _callee7);
+              }));
+
+              return function (_x7) {
+                return _ref4.apply(this, arguments);
+              };
+            }());
+            _context9.next = 18;
+            return roomRef.collection("callerCandidates").get();
+
+          case 18:
+            callerCandidates = _context9.sent;
+            callerCandidates.forEach( /*#__PURE__*/function () {
               var _ref5 = (0, _asyncToGenerator2.default)( /*#__PURE__*/_regenerator.default.mark(function _callee8(candidate) {
                 return _regenerator.default.wrap(function _callee8$(_context8) {
                   while (1) {
@@ -103238,48 +103231,22 @@ function _hangUp() {
                 }, _callee8);
               }));
 
-              return function (_x7) {
+              return function (_x8) {
                 return _ref5.apply(this, arguments);
               };
             }());
-            _context10.next = 19;
-            return roomRef.collection("callerCandidates").get();
-
-          case 19:
-            callerCandidates = _context10.sent;
-            callerCandidates.forEach( /*#__PURE__*/function () {
-              var _ref6 = (0, _asyncToGenerator2.default)( /*#__PURE__*/_regenerator.default.mark(function _callee9(candidate) {
-                return _regenerator.default.wrap(function _callee9$(_context9) {
-                  while (1) {
-                    switch (_context9.prev = _context9.next) {
-                      case 0:
-                        _context9.next = 2;
-                        return candidate.ref.delete();
-
-                      case 2:
-                      case "end":
-                        return _context9.stop();
-                    }
-                  }
-                }, _callee9);
-              }));
-
-              return function (_x8) {
-                return _ref6.apply(this, arguments);
-              };
-            }());
-            _context10.next = 23;
+            _context9.next = 22;
             return roomRef.delete();
 
-          case 23:
+          case 22:
             document.location.reload(true);
 
-          case 24:
+          case 23:
           case "end":
-            return _context10.stop();
+            return _context9.stop();
         }
       }
-    }, _callee10);
+    }, _callee9);
   }));
   return _hangUp.apply(this, arguments);
 }

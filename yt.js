@@ -29,7 +29,7 @@ window.onYouTubeIframeAPIReady = () => {
 // 4. The API will call this function when the video player is ready.
 function onPlayerReady(event) {
   event.target.seekTo(getSeekTime());
-  event.target.playVideo();
+//  event.target.playVideo();
 }
 
 // 5. The API calls this function when the player's state changes.
