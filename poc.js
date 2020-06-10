@@ -215,6 +215,10 @@ function init() {
   scene.add(remoteWebcam);
   const localWebcam = planeFactory("localVideo", { x: -30 });
   scene.add(localWebcam);
+  const youtube = planeFactory("player1", { x: -90 });
+  scene.add(youtube);
+
+
 
   renderer = new THREE.WebGLRenderer({ antialias: true });
   renderer.setPixelRatio(window.devicePixelRatio);

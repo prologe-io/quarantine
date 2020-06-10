@@ -102713,6 +102713,10 @@ function init() {
     x: -30
   });
   scene.add(localWebcam);
+  var youtube = planeFactory("player1", {
+    x: -90
+  });
+  scene.add(youtube);
   renderer = new THREE.WebGLRenderer({
     antialias: true
   });
