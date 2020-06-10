@@ -3,6 +3,7 @@ import firebase from "firebase/app";
 import "firebase/analytics";
 // Add the Firebase products that you want to use
 import "firebase/firestore";
+import { initKlub } from "./poc";
 
 const firebaseConfig = {
   apiKey: "AIzaSyDkZH4Gue8fJazZXsPhXYJKB_Q0PmEsPWE",
@@ -35,7 +36,6 @@ let roomDialog = null;
 let roomId = null;
 
 function init() {
-  document.querySelector("#cameraBtn").addEventListener("click", openUserMedia);
   document.querySelector("#hangupBtn").addEventListener("click", hangUp);
   document.querySelector("#createBtn").addEventListener("click", createRoom);
   document.querySelector("#joinBtn").addEventListener("click", joinRoom);
@@ -43,6 +43,8 @@ function init() {
 }
 
 async function createRoom() {
+  await openUserMedia()
+  initKlub()
   document.querySelector("#createBtn").disabled = true;
   document.querySelector("#joinBtn").disabled = true;
   const db = firebase.firestore();
@@ -216,11 +218,9 @@ async function openUserMedia(e) {
   document.querySelector("#remoteVideo").srcObject = remoteStream;
 
   console.log("Stream:", document.querySelector("#localVideo").srcObject);
-  document.querySelector("#cameraBtn").disabled = true;
   document.querySelector("#joinBtn").disabled = false;
   document.querySelector("#createBtn").disabled = false;
   document.querySelector("#hangupBtn").disabled = false;
-
 }
 
 async function hangUp(e) {
@@ -239,7 +239,6 @@ async function hangUp(e) {
 
   document.querySelector("#localVideo").srcObject = null;
   document.querySelector("#remoteVideo").srcObject = null;
-  document.querySelector("#cameraBtn").disabled = false;
   document.querySelector("#joinBtn").disabled = true;
   document.querySelector("#createBtn").disabled = true;
   document.querySelector("#hangupBtn").disabled = true;

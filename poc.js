@@ -3,6 +3,7 @@ import * as THREE from "three";
 import Stats from "three/examples/jsm/libs/stats.module.js";
 import { GUI } from "three/examples/jsm/libs/dat.gui.module.js";
 import { PointerLockControls } from "three/examples/jsm/controls/PointerLockControls.js";
+import { initializeApp } from "firebase";
 
 let camera, scene, renderer, controls;
 
@@ -20,8 +21,10 @@ let prevTime = performance.now();
 let velocity = new THREE.Vector3();
 let direction = new THREE.Vector3();
 
-init();
-animate();
+export const initKlub = () => {
+  init();
+  animate();
+};
 
 function onWindowResize() {
   camera.aspect = window.innerWidth / window.innerHeight;
@@ -32,7 +35,7 @@ function onWindowResize() {
 
 function planeFactory(src, position = { x: 100 }) {
   const video = document.getElementById(src);
-  video.play()
+  video.play();
   const texture = new THREE.VideoTexture(video);
 
   var geometry = new THREE.PlaneGeometry(640, 360, 16);
@@ -157,7 +160,6 @@ function init() {
           break;
 
         case 32: // space
-        
           if (canJump === true) velocity.y += 350;
           canJump = false;
           break;
