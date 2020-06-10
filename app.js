@@ -45,13 +45,15 @@ function init() {
     document.querySelector("#calling").remove();
     initKlub();
     joinRoomById(newRoomId);
+    document.querySelector("#root").style.display = "block";
   }
 }
 
 async function createRoom() {
+  document.querySelector("#root").style.display = "block";
+  document.querySelector("#calling").style.display = "none";
   await openUserMedia();
   initKlub();
-  document.querySelector("#createBtn").disabled = true;
   const db = firebase.firestore();
   const roomRef = await db.collection("rooms").doc();
 
@@ -164,6 +166,7 @@ async function joinRoomById(roomId) {
 
         remoteStream.addTrack(track);
       });
+      initRemote()
     });
 
     // Code for creating SDP answer below
@@ -208,8 +211,6 @@ async function openUserMedia(e) {
   document.querySelector("#remoteVideo").srcObject = remoteStream;
 
   console.log("Stream:", document.querySelector("#localVideo").srcObject);
-  document.querySelector("#createBtn").disabled = false;
-  document.querySelector("#hangupBtn").disabled = false;
 }
 
 async function hangUp(e) {
@@ -228,8 +229,6 @@ async function hangUp(e) {
 
   document.querySelector("#localVideo").srcObject = null;
   document.querySelector("#remoteVideo").srcObject = null;
-  document.querySelector("#createBtn").disabled = true;
-  document.querySelector("#hangupBtn").disabled = true;
   document.querySelector("#currentRoom").innerText = "";
 
   // Delete room on hangup
