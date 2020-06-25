@@ -2,6 +2,10 @@
 
 first-person virtual club experience.
 
+# Status
+
+POC phase
+
 # Tech stack
 * WebRTC
 * Firebase for WebRTC signaling
